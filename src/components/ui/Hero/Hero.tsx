@@ -43,8 +43,8 @@ const HeroSection = () => {
       <div className="relative z-10">
         {/* Top subtitle banner */}
         <div className="mb-6 flex flex-col items-center">
-          <div className="bg-purple-900/90 border border-white italic backdrop-blur-sm text-white text-center py-2 px-6 rounded-md mx-auto ">
-            <p className="text-sm sm:text-base md:text-lg max-w-2xl font-medium">
+          <div className="bg-purple-900/90 border border-white italic backdrop-blur-sm text-white text-center  px-6 rounded-md mx-auto ">
+            <p className="text-sm sm:text-base md:text-lg max-w-2xl font-medium text-gray-200">
               Para editores que quieran lograr más y cobrar mucho más
             </p>
           </div>
@@ -52,10 +52,12 @@ const HeroSection = () => {
 
         {/* Main heading */}
         <div className="text-center mb-6 flex flex-col items-center">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-tight bg-black py-2">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-tight bg-black py-2 italic">
             Cómo ganar mínimo{" "}
-            <span className="text-white">$2,000 dólares mensuales</span>{" "}
-            editando y
+            <span className="text-white bg-purple-800">
+              $2,000 dólares mensuales editando
+            </span>{" "}
+            y
             <br />
             con pocos clientes
           </h1>

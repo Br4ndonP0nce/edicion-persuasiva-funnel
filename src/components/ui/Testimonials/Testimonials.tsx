@@ -58,8 +58,10 @@ const TestimonialsSection = () => {
         </motion.div>
       </div>
 
+      {/* Centered container with explicit max width */}
       <motion.div
-        className="container mx-auto px-4 space-y-24"
+        className="mx-auto px-4 space-y-24"
+        style={{ maxWidth: "960px" }} /* Explicit max width */
         variants={containerVariant}
         initial="hidden"
         whileInView="visible"
@@ -74,20 +76,24 @@ const TestimonialsSection = () => {
             className="bg-[#13111b]/90 backdrop-blur-sm rounded-lg border border-purple-900/50 overflow-hidden"
           >
             <div className="flex flex-col md:flex-row">
-              {/* Left side - Discord conversation (now using image) */}
+              {/* Left side - Discord conversation with constrained height */}
               <div className="w-full md:w-1/2 p-6">
-                <div className="rounded-lg overflow-hidden shadow-lg">
-                  <Image
-                    src="/image/testimonials/6.jpg"
-                    alt="Santiago's Discord conversation"
-                    width={600}
-                    height={400}
-                    className="w-full"
-                  />
+                <div
+                  className="rounded-lg overflow-hidden shadow-lg"
+                  style={{ maxHeight: "400px" }}
+                >
+                  <div className="relative" style={{ height: "320px" }}>
+                    <Image
+                      src="/image/testimonials/6.jpg"
+                      alt="Santiago's Discord conversation"
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Right side - Results summary (keep the original styling) */}
+              {/* Right side - Results summary */}
               <div className="w-full md:w-1/2 p-6 bg-[#1a1526] flex flex-col justify-center">
                 <h3 className="text-purple-300 text-2xl md:text-3xl font-bold mb-4 heading-glow">
                   $1,275 dólares mensuales de UN SOLO CLIENTE
@@ -161,16 +167,20 @@ const TestimonialsSection = () => {
                 </p>
               </div>
 
-              {/* Right side - Discord conversation (now using image) */}
+              {/* Right side - Discord conversation with constrained height */}
               <div className="w-full md:w-1/2 p-6 order-1 md:order-2">
-                <div className="rounded-lg overflow-hidden shadow-lg">
-                  <Image
-                    src="/image/testimonials/4.jpg"
-                    alt="Andrew's Discord conversation"
-                    width={600}
-                    height={500}
-                    className="w-full"
-                  />
+                <div
+                  className="rounded-lg overflow-hidden shadow-lg"
+                  style={{ maxHeight: "400px" }}
+                >
+                  <div className="relative" style={{ height: "320px" }}>
+                    <Image
+                      src="/image/testimonials/4.jpg"
+                      alt="Andrew's Discord conversation"
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -186,16 +196,20 @@ const TestimonialsSection = () => {
             className="bg-[#13111b]/90 backdrop-blur-sm rounded-lg border border-purple-900/50 overflow-hidden"
           >
             <div className="flex flex-col md:flex-row">
-              {/* Left side - Discord conversation (now using image) */}
+              {/* Left side - Discord conversation with constrained height */}
               <div className="w-full md:w-1/2 p-6">
-                <div className="rounded-lg overflow-hidden shadow-lg">
-                  <Image
-                    src="/image/testimonials/8.jpg"
-                    alt="Alex's Discord conversation"
-                    width={600}
-                    height={400}
-                    className="w-full"
-                  />
+                <div
+                  className="rounded-lg overflow-hidden shadow-lg"
+                  style={{ maxHeight: "400px" }}
+                >
+                  <div className="relative" style={{ height: "320px" }}>
+                    <Image
+                      src="/image/testimonials/8.jpg"
+                      alt="Alex's Discord conversation"
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -222,16 +236,20 @@ const TestimonialsSection = () => {
                   </div>
                 </div>
 
-                {/* WhatsApp message preview (using image) */}
+                {/* WhatsApp message preview with constrained height */}
                 <div className="mt-auto">
-                  <div className="rounded-lg overflow-hidden shadow-lg">
-                    <Image
-                      src="/images/discord/paola-whatsapp.jpg"
-                      alt="Paola Herrera WhatsApp conversation"
-                      width={600}
-                      height={300}
-                      className="w-full"
-                    />
+                  <div
+                    className="rounded-lg overflow-hidden shadow-lg"
+                    style={{ maxHeight: "200px" }}
+                  >
+                    <div className="relative" style={{ height: "160px" }}>
+                      <Image
+                        src="/images/discord/paola-whatsapp.jpg"
+                        alt="Paola Herrera WhatsApp conversation"
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
