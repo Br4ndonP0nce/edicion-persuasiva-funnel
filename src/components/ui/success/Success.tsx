@@ -1,59 +1,53 @@
 "use client";
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  MotionDiv,
-  StaggerContainer,
-  StaggerItem,
-} from "@/components/ui/motion";
+import React, { useState, useEffect } from "react";
+
 import { motion } from "framer-motion";
 import Image from "next/image";
 
 const SuccessSection = () => {
-  // Animation variants
-  const staggerContainer = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-      },
-    },
-  };
+  const discordImages = [
+    // Left column
+    "/image/testimonials/7.jpg",
+    "/image/testimonials/2.jpg",
 
-  const fadeIn = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5, ease: "easeOut" },
-    },
-  };
+    // Middle column
+    "/image/testimonials/10.jpg",
+    "/image/testimonials/1.jpg",
+    "/image/testimonials/9.jpg",
+
+    // Right column
+    "/image/testimonials/3.jpg",
+    "/image/testimonials/5.jpg",
+  ];
 
   return (
     <section className="py-16 bg-black relative">
-      {/* Purple glow in background */}
-      <div className="absolute top-1/2 left-1/4 w-96 h-96 rounded-full bg-purple-600/10 blur-3xl" />
-      <div className="absolute bottom-1/2 right-1/4 w-80 h-80 rounded-full bg-purple-600/10 blur-3xl" />
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-purple-900/10 to-transparent pointer-events-none" />
 
       <div className="container mx-auto px-4">
-        {/* Simple flex row with 3 column divs */}
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* Left column */}
-          <div className="flex-1 flex flex-col space-y-6">
+        {/* 
+              Simple responsive grid:
+              - On desktop (md and up): 3 columns
+              - On mobile: single column 
+            */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Left column images */}
+          <div className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
+              className="rounded-lg overflow-hidden shadow-lg"
             >
               <Image
-                src="/image/testimonials/7.jpg"
-                alt="Andrew Discord message"
-                width={400}
+                src={discordImages[0]}
+                alt="Discord message"
+                width={500}
                 height={300}
-                className="w-full rounded-lg"
+                className="w-full h-auto"
               />
             </motion.div>
 
@@ -62,31 +56,33 @@ const SuccessSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.1 }}
+              className="rounded-lg overflow-hidden shadow-lg"
             >
               <Image
-                src="/image/testimonials/2.jpg"
-                alt="David video message"
-                width={400}
+                src={discordImages[1]}
+                alt="Discord message"
+                width={500}
                 height={400}
-                className="w-full rounded-lg"
+                className="w-full h-auto"
               />
             </motion.div>
           </div>
 
-          {/* Middle column */}
-          <div className="flex-1 flex flex-col space-y-6">
+          {/* Middle column images */}
+          <div className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.2 }}
+              className="rounded-lg overflow-hidden shadow-lg"
             >
               <Image
-                src="/image/testimonials/10.jpg"
-                alt="Alex Netflix comment"
-                width={400}
+                src={discordImages[2]}
+                alt="Discord message"
+                width={500}
                 height={200}
-                className="w-full rounded-lg"
+                className="w-full h-auto"
               />
             </motion.div>
 
@@ -95,13 +91,14 @@ const SuccessSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.3 }}
+              className="rounded-lg overflow-hidden shadow-lg"
             >
               <Image
-                src="/image/testimonials/1.jpg"
-                alt="Carlos message"
-                width={400}
+                src={discordImages[3]}
+                alt="Discord message"
+                width={500}
                 height={200}
-                className="w-full rounded-lg"
+                className="w-full h-auto"
               />
             </motion.div>
 
@@ -110,31 +107,33 @@ const SuccessSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.4 }}
+              className="rounded-lg overflow-hidden shadow-lg"
             >
               <Image
-                src="/image/testimonials/9.jpg"
-                alt="Bolsa de trabajo channel"
-                width={400}
+                src={discordImages[4]}
+                alt="Discord message"
+                width={500}
                 height={300}
-                className="w-full rounded-lg"
+                className="w-full h-auto"
               />
             </motion.div>
           </div>
 
-          {/* Right column */}
-          <div className="flex-1 flex flex-col space-y-6">
+          {/* Right column images */}
+          <div className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.5 }}
+              className="rounded-lg overflow-hidden shadow-lg"
             >
               <Image
-                src="/image/testimonials/3.jpg"
-                alt="Andrés YouTube comment"
-                width={400}
+                src={discordImages[5]}
+                alt="Discord message"
+                width={500}
                 height={350}
-                className="w-full rounded-lg"
+                className="w-full h-auto"
               />
             </motion.div>
 
@@ -143,13 +142,14 @@ const SuccessSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.6 }}
+              className="rounded-lg overflow-hidden shadow-lg"
             >
               <Image
-                src="/image/testimonials/5.jpg"
-                alt="David reply"
-                width={400}
+                src={discordImages[6]}
+                alt="Discord message"
+                width={500}
                 height={200}
-                className="w-full rounded-lg"
+                className="w-full h-auto"
               />
             </motion.div>
           </div>
