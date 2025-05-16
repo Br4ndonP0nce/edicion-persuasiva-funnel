@@ -114,18 +114,6 @@ const FreeClassesSection: React.FC = () => {
                   {/* Text overlay with positioning */}
                   <div className="absolute inset-0 flex flex-col p-6">
                     {/* Top text */}
-                    <div className="text-center mb-4">
-                      <p className="text-white/90 text-sm sm:text-base">
-                        {masterclass.subtitle}
-                      </p>
-                    </div>
-
-                    {/* Middle text */}
-                    <div className="flex-grow flex items-center justify-center">
-                      <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-wider text-center">
-                        {masterclass.title}
-                      </h3>
-                    </div>
 
                     {/* Bottom text */}
                     <div className="text-right mt-4">

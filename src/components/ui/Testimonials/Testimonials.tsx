@@ -240,11 +240,11 @@ const TestimonialsSection = () => {
                 <div className="mt-auto">
                   <div
                     className="rounded-lg overflow-hidden shadow-lg"
-                    style={{ maxHeight: "200px" }}
+                    style={{ maxHeight: "500px" }}
                   >
-                    <div className="relative" style={{ height: "160px" }}>
+                    <div className="relative" style={{ height: "360px" }}>
                       <Image
-                        src="/images/discord/paola-whatsapp.jpg"
+                        src="/image/paola.jpg"
                         alt="Paola Herrera WhatsApp conversation"
                         fill
                         className="object-contain"
