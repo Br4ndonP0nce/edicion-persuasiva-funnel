@@ -15,30 +15,23 @@ const MentorSection = () => {
       title: "Manipulo sus emociones | Cómo m...",
       type: "EDICIÓN INMERSIVA",
       color: "text-amber-400",
-      thumbnail: "/images/video-thumbnails/inmersiva.jpg", // Replace with actual thumbnail path
+      thumbnail: "/image/masterClass.jpg", // Replace with actual thumbnail path
     },
     {
       id: "bn46IZeRHb0", // Replace with actual YouTube video ID
       title: "Ojalá me hubieran enseñado a edit...",
       type: "EDICIÓN PERSUASIVA",
       color: "text-white",
-      thumbnail: "/images/video-thumbnails/persuasiva.jpg", // Replace with actual thumbnail path
+      thumbnail: "/image/persuasion1.jpg", // Replace with actual thumbnail path
     },
     {
       id: "NAcwqVcVDws", // Replace with actual YouTube video ID
       title: "Aprender esto me ahorró años | Có...",
       type: "EDICIÓN VELOZ",
       color: "text-yellow-300",
-      thumbnail: "/images/video-thumbnails/veloz.jpg", // Replace with actual thumbnail path
+      thumbnail: "/image/persuasion2.jpg", // Replace with actual thumbnail path
     },
   ];
-
-  // Handle clicking on a video thumbnail
-  const handleVideoClick = (videoId: string) => {
-    setPlayingVideo(videoId);
-    // In a real implementation, you might open a modal or redirect to YouTube
-    window.open(`https://www.youtube.com/watch?v=${videoId}`, "_blank");
-  };
 
   return (
     <section className="py-20 bg-black">

@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,7 +60,7 @@ const TestimonialsSection = () => {
 
       {/* Centered container with explicit max width */}
       <motion.div
-        className="mx-auto px-4 space-y-24"
+        className="mx-auto px-4 space-y-9"
         style={{ maxWidth: "960px" }} /* Explicit max width */
         variants={containerVariant}
         initial="hidden"
@@ -255,6 +255,20 @@ const TestimonialsSection = () => {
               </div>
             </div>
           </motion.div>
+          <div className="mt-8 text-center">
+            <Link href="join">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-base sm:text-lg py-4 px-8 rounded-md md:text-3xl"
+                style={{
+                  boxShadow: "0 0 10px rgba(138, 43, 226, 0.4)",
+                }}
+              >
+                Deseo Aplicar
+              </motion.button>
+            </Link>
+          </div>
         </motion.div>
       </motion.div>
     </section>

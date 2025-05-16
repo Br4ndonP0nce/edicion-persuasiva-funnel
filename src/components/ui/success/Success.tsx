@@ -26,7 +26,7 @@ const SuccessSection = () => {
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-purple-900/10 to-transparent pointer-events-none" />
 
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 flex items-center justify-center">
         {/* 
               Simple responsive grid:
               - On desktop (md and up): 3 columns

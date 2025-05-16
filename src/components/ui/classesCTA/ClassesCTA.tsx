@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
-const HeroSection = () => {
+const ClassesCTA = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   // Animation variants
   const containerVariants = {
@@ -29,48 +29,29 @@ const HeroSection = () => {
   };
 
   return (
-    <div className="bg-black min-h-[600px] text-white  overflow-hidden p-6 relative mt-8">
+    <div className="bg-black min-h-[600px] text-white  overflow-hidden p-6 relative ">
       {/* Background gradient effects */}
       <div className="absolute top-[10%] left-[10%] w-64 h-64 rounded-full bg-purple-600/20 blur-3xl" />
       <div className="absolute bottom-[5%] right-[10%] w-56 h-56 rounded-full bg-purple-600/10 blur-3xl" />
 
       {/* Content container */}
       <div className="relative z-10">
-        {/* Top subtitle banner */}
-        <div className="mb-6 flex flex-col items-center mt-4">
-          <div className="bg-purple-900/90 border border-white italic backdrop-blur-sm text-white text-center  px-6 rounded-md mx-auto ">
-            <p className="text-sm sm:text-base md:text-lg max-w-2xl font-medium text-gray-200">
-              Para editores que quieran lograr más y cobrar mucho más
-            </p>
-          </div>
-        </div>
-
         {/* Main heading */}
-        <div className="text-center mb-6 flex flex-col items-center">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-tight bg-black py-2 italic">
-            Cómo ganar mínimo{" "}
-            <span className="text-white bg-purple-800">
-              $2,000 dólares mensuales editando
-            </span>{" "}
-            y
-            <br />
-            con pocos clientes
+        <div className="text-center mb-3 flex flex-col items-center">
+          <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-white leading-tight ">
+            ACCEDE A LA ACADEMIA DE EDICION PERSUASIVA
           </h1>
         </div>
 
         {/* Module buttons */}
         <div className="text-center mb-6">
-          <div className="text-purple-300 text-xs sm:text-sm md:text-base font-medium">
-            <span>MÓDULO COGNITIVO</span>
-            <span className="mx-2">|</span>
-            <span>MÓDULO PRÁCTICO</span>
-            <span className="mx-2">|</span>
-            <span>CIERRES DE VENTAS</span>
+          <div className="text-purple-300 text-xs sm:text-sm md:text-xl font-medium">
+            La academia de edición MÁS COMPLETA de habla hispana
           </div>
         </div>
 
         {/* Video player */}
-        <div className="mx-auto rounded-lg overflow-hidden border border-gray-800 shadow-2xl max-w-3xl">
+        <div className="mx-auto rounded-lg overflow-hidden border border-gray-800 shadow-2xl max-w-xl">
           <div className="relative">
             {/* Video with dark overlay */}
             <div className="relative aspect-video bg-gray-900">
@@ -231,12 +212,12 @@ const HeroSection = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-base sm:text-lg py-2 px-8 rounded-md"
+              className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-base md:text-2xl sm:text-lg py-4 px-8 rounded-md"
               style={{
                 boxShadow: "0 0 10px rgba(138, 43, 226, 0.4)",
               }}
             >
-              Deseo Aplicar
+              Deseo acceder hoy
             </motion.button>
           </Link>
         </div>
@@ -245,4 +226,4 @@ const HeroSection = () => {
   );
 };
 
-export default HeroSection;
+export default ClassesCTA;
