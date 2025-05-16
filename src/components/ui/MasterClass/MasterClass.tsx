@@ -32,7 +32,7 @@ const MasterClassSection: React.FC = () => {
       {/* Left side - Image */}
       <div className="w-full lg:w-1/2 relative min-h-[50vh] lg:min-h-screen">
         <Image
-          src="/image/MasterClass.jpg" // Replace with your actual image path
+          src="/image/masterClass.jpg" // Replace with your actual image path
           alt="Diseño Sonoro - Edición Persuasiva"
           fill
           className="object-cover"

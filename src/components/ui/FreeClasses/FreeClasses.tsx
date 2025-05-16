@@ -20,7 +20,7 @@ const FreeClassesSection: React.FC = () => {
       id: "diseno-sonoro",
       title: "DISEÑO SONORO",
       subtitle: "MasterClass Gratuita",
-      imageSrc: "/image/MasterClass.jpg",
+      imageSrc: "/image/masterClass.jpg",
       link: "https://www.loom.com/share/813297adae3341f492320bd0813cb116?sid=da517b64-4b7a-4b41-a36b-b1237a8f5b90",
     },
     {
