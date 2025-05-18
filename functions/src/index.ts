@@ -1,6 +1,4 @@
 
-// import {onCall} from "firebase-functions/v2/https";
-// import {onDocumentWritten} from "firebase-functions/v2/firestore";
 
 
 import {onRequest} from "firebase-functions/v2/https";
