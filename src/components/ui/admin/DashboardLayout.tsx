@@ -1,4 +1,5 @@
-import React, { ReactNode, useState } from "react";
+// src/components/ui/admin/DashboardLayout.tsx - Updated with better mobile responsiveness
+import React, { ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -21,6 +22,23 @@ interface DashboardLayoutProps {
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if the device is mobile based on viewport width
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // 768px is the 'md' breakpoint in Tailwind
+    };
+
+    // Initial check
+    checkMobile();
+
+    // Listen for resize events
+    window.addEventListener("resize", checkMobile);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -54,18 +72,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         ></div>
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - hidden on mobile by default, shown when sidebarOpen is true */}
       <div
-        className={`fixed inset-y-0 left-0 flex flex-col w-64 bg-purple-900 text-white transform transition-transform ease-in-out duration-300 z-50 md:relative md:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed inset-y-0 left-0 flex flex-col w-64 bg-purple-900 text-white transform transition-transform ease-in-out duration-300 z-50
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          md:relative md:translate-x-0`}
       >
-        {/* Sidebar header */}
+        {/* Sidebar header with close button */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-purple-800">
-          <Link href="/admin">
+          <Link href="/">
             <div className="flex items-center">
               <Image
-                src="/images/logo.png"
+                src="/image/logo.jpg" // Make sure this path is correct
                 alt="Edición Persuasiva"
                 width={120}
                 height={30}
@@ -75,7 +93,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="md:hidden text-purple-200 hover:text-white"
+            className="md:hidden text-purple-200 hover:text-white focus:outline-none"
           >
             <X size={20} />
           </button>
@@ -93,6 +111,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                     ? "bg-purple-800 text-white"
                     : "text-purple-200 hover:bg-purple-700 hover:text-white"
                 }`}
+                onClick={() => isMobile && setSidebarOpen(false)} // Close sidebar on mobile after clicking
               >
                 <item.icon
                   className={`mr-3 h-5 w-5 ${
@@ -121,28 +140,29 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
       {/* Main content */}
       <div className="flex flex-col w-0 flex-1 overflow-hidden">
-        {/* Top header */}
+        {/* Top header - always visible on mobile */}
         <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow">
+          {/* Mobile menu button - ALWAYS visible on mobile screens */}
           <button
-            onClick={() => setSidebarOpen(true)}
-            className="md:hidden px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 md:hidden"
+            aria-label="Open sidebar"
           >
-            <span className="sr-only">Open sidebar</span>
             <Menu className="h-6 w-6" />
           </button>
 
           <div className="flex-1 px-4 flex justify-between">
             <div className="flex-1 flex">
-              {/* You can add a search bar or other elements here */}
+              {/* Optional search bar could go here */}
             </div>
             <div className="ml-4 flex items-center md:ml-6">
               {/* Notifications */}
-              <button className="p-1 text-gray-400 rounded-full hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+              <button className="p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
                 <span className="sr-only">View notifications</span>
                 <Bell className="h-6 w-6" />
               </button>
 
-              {/* Profile dropdown can be added here */}
+              {/* Profile dropdown could go here */}
             </div>
           </div>
         </div>

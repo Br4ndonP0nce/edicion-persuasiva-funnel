@@ -88,71 +88,69 @@ export default function AdminDashboard() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+        </div>
+      ) : error ? (
+        <div className="bg-red-100 text-red-700 p-4 rounded-md">{error}</div>
+      ) : (
+        <>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <LeadStatusCard
+              title="Total Leads"
+              count={leadCount}
+              icon="users"
+              color="blue"
+            />
+            <LeadStatusCard
+              title="En Onboarding"
+              count={leadsByStatus.onboarding}
+              icon="refresh-cw"
+              color="amber"
+            />
+            <LeadStatusCard
+              title="Ventas"
+              count={leadsByStatus.sale}
+              icon="check-circle"
+              color="green"
+            />
+            <LeadStatusCard
+              title="Ingresos"
+              count={`$${actualRevenue.toLocaleString()}`}
+              subtitle={`+$${potentialRevenue.toLocaleString()} potencial`}
+              icon="dollar-sign"
+              color="purple"
+            />
           </div>
-        ) : error ? (
-          <div className="bg-red-100 text-red-700 p-4 rounded-md">{error}</div>
-        ) : (
-          <>
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <LeadStatusCard
-                title="Total Leads"
-                count={leadCount}
-                icon="users"
-                color="blue"
-              />
-              <LeadStatusCard
-                title="En Onboarding"
-                count={leadsByStatus.onboarding}
-                icon="refresh-cw"
-                color="amber"
-              />
-              <LeadStatusCard
-                title="Ventas"
-                count={leadsByStatus.sale}
-                icon="check-circle"
-                color="green"
-              />
-              <LeadStatusCard
-                title="Ingresos"
-                count={`$${actualRevenue.toLocaleString()}`}
-                subtitle={`+$${potentialRevenue.toLocaleString()} potencial`}
-                icon="dollar-sign"
-                color="purple"
-              />
-            </div>
 
-            {/* Lead Status Chart */}
-            <div className="bg-white rounded-lg shadow p-6 mb-8">
-              <h2 className="text-lg font-medium mb-4">Estado de Leads</h2>
-              <div className="h-64">
-                <LeadChart leads={leads} />
-              </div>
+          {/* Lead Status Chart */}
+          <div className="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 className="text-lg font-medium mb-4">Estado de Leads</h2>
+            <div className="h-64">
+              <LeadChart leads={leads} />
             </div>
+          </div>
 
-            {/* Recent Leads Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="px-6 py-4 border-b">
-                <h2 className="text-lg font-medium">Leads Recientes</h2>
-              </div>
-              <LeadTable
-                leads={leads.slice(0, 5)}
-                onStatusChange={() => {
-                  // Refresh leads after status change
-                  getLeads().then(setLeads);
-                }}
-              />
+          {/* Recent Leads Table */}
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="px-6 py-4 border-b">
+              <h2 className="text-lg font-medium">Leads Recientes</h2>
             </div>
-          </>
-        )}
-      </div>
-    </DashboardLayout>
+            <LeadTable
+              leads={leads.slice(0, 5)}
+              onStatusChange={() => {
+                // Refresh leads after status change
+                getLeads().then(setLeads);
+              }}
+            />
+          </div>
+        </>
+      )}
+    </div>
   );
 }
