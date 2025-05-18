@@ -140,4 +140,79 @@ import {
       console.error('Error searching leads:', error);
       throw error;
     }
-  };
+};
+  
+//CMS
+export interface ContentItem {
+  id?: string;
+  type: 'text' | 'image' | 'video';
+  section: string; // E.g., 'hero', 'testimonials', 'benefits'
+  key: string;     // E.g., 'title', 'subtitle', 'video_url'
+  value: string;
+  label: string;   // Human-readable label
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+// Collection reference
+const CONTENT_COLLECTION = 'content';
+
+// Get all content
+export const getAllContent = async (): Promise<ContentItem[]> => {
+  try {
+    const q = query(
+      collection(db, CONTENT_COLLECTION),
+      orderBy('section'),
+      orderBy('key')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const content: ContentItem[] = [];
+    
+    querySnapshot.forEach((doc) => {
+      content.push({ id: doc.id, ...doc.data() } as ContentItem);
+    });
+    
+    return content;
+  } catch (error) {
+    console.error('Error getting content:', error);
+    throw error;
+  }
+};
+
+// Get content by section
+export const getContentBySection = async (section: string): Promise<ContentItem[]> => {
+  try {
+    const q = query(
+      collection(db, CONTENT_COLLECTION),
+      where('section', '==', section),
+      orderBy('key')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const content: ContentItem[] = [];
+    
+    querySnapshot.forEach((doc) => {
+      content.push({ id: doc.id, ...doc.data() } as ContentItem);
+    });
+    
+    return content;
+  } catch (error) {
+    console.error('Error getting section content:', error);
+    throw error;
+  }
+};
+
+// Update content
+export const updateContent = async (contentId: string, value: string): Promise<void> => {
+  try {
+    const contentRef = doc(db, CONTENT_COLLECTION, contentId);
+    await updateDoc(contentRef, {
+      value,
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error updating content:', error);
+    throw error;
+  }
+};

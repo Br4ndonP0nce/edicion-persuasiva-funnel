@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   Bell,
+  FileText,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -53,6 +54,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { name: "Leads", href: "/admin/leads", icon: Users },
     { name: "Estadísticas", href: "/admin/stats", icon: BarChart2 },
     { name: "Configuración", href: "/admin/settings", icon: Settings },
+    { name: "Contenido", href: "/admin/content", icon: FileText },
   ];
 
   const isActive = (path: string) => {
@@ -63,7 +65,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-100">
+    <div className="h-screen flex overflow-hidden bg-gray-100 z-50">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div

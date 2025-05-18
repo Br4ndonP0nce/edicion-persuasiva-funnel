@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthChange } from "@/lib/firebase/auth";
 import { getLeads, Lead } from "@/lib/firebase/db";
-import DashboardLayout from "@/components/ui/admin/DashboardLayout";
+
 import LeadStatusCard from "@/components/ui/admin/LeadStatusCard";
 import LeadTable from "@/components/ui/admin/LeadTable";
 import LeadChart from "@/components/ui/admin/LeadChart";

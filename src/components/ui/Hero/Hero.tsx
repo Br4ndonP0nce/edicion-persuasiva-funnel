@@ -4,6 +4,9 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
+// Firebase content hook
+import { getContentBySection } from "@/lib/firebase/db";
+
 const HeroSection = () => {
   // Video states
   const [isPlaying, setIsPlaying] = useState(false);
@@ -14,15 +17,58 @@ const HeroSection = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [progressPercentage, setProgressPercentage] = useState(0);
 
+  // Content state from Firebase
+  const [content, setContent] = useState({
+    subtitle: "Para editores que quieran lograr más y cobrar mucho más",
+    headline:
+      "Cómo ganar mínimo $2,000 dólares mensuales editando y con pocos clientes",
+    module1: "MÓDULO COGNITIVO",
+    module2: "MÓDULO PRÁCTICO",
+    module3: "CIERRES DE VENTAS",
+    video_url: "https://storage.googleapis.com/edicionpersuasiva/mainVSL.mp4",
+    poster_url: "/image/hero-poster.jpg",
+    cta_button: "Deseo Aplicar",
+    cta_url: "join",
+  });
+
+  // Loading state for content
+  const [isContentLoading, setIsContentLoading] = useState(true);
+
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
-  // Video URL - Replace with your actual video URL
-  const videoUrl =
-    "https://storage.googleapis.com/edicionpersuasiva/mainVSL.mp4";
-  // Fallback poster image
-  const posterUrl = "/image/hero-poster.jpg"; // Replace with your poster image
+  // Fetch content from Firebase
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        setIsContentLoading(true);
+        const contentItems = await getContentBySection("hero");
+
+        // Only update state if we got content items
+        if (contentItems.length > 0) {
+          // Convert array of items to an object with key/value pairs
+          const contentObj: Record<string, string> = {};
+          contentItems.forEach((item) => {
+            contentObj[item.key] = item.value;
+          });
+
+          // Update state with new content, keeping defaults for missing items
+          setContent((prevContent) => ({
+            ...prevContent,
+            ...contentObj,
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching hero content:", error);
+        // Keep default values on error
+      } finally {
+        setIsContentLoading(false);
+      }
+    };
+
+    fetchContent();
+  }, []);
 
   // Format time from seconds to MM:SS
   const formatTime = (timeInSeconds: number) => {
@@ -185,6 +231,15 @@ const HeroSection = () => {
     },
   };
 
+  // Show loading state if content is still loading
+  if (isContentLoading) {
+    return (
+      <div className="bg-black min-h-[600px] text-white overflow-hidden p-6 relative mt-8 flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-black min-h-[600px] text-white overflow-hidden p-6 relative mt-8">
       {/* Background gradient effects */}
@@ -197,7 +252,7 @@ const HeroSection = () => {
         <div className="mb-6 flex flex-col items-center mt-4">
           <div className="bg-purple-900/90 border border-white italic backdrop-blur-sm text-white text-center px-6 rounded-md mx-auto">
             <p className="text-sm sm:text-base md:text-lg max-w-2xl font-medium text-gray-200">
-              Para editores que quieran lograr más y cobrar mucho más
+              {content.subtitle}
             </p>
           </div>
         </div>
@@ -205,24 +260,30 @@ const HeroSection = () => {
         {/* Main heading */}
         <div className="text-center mb-6 flex flex-col items-center">
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-tight bg-black py-2 italic">
-            Cómo ganar mínimo{" "}
-            <span className="text-white bg-purple-800">
-              $2,000 dólares mensuales editando
-            </span>{" "}
-            y
-            <br />
-            con pocos clientes
+            {content.headline.includes("$2,000") ? (
+              <>
+                Cómo ganar mínimo{" "}
+                <span className="text-white bg-purple-800">
+                  $2,000 dólares mensuales editando
+                </span>{" "}
+                y
+                <br />
+                con pocos clientes
+              </>
+            ) : (
+              content.headline
+            )}
           </h1>
         </div>
 
         {/* Module buttons */}
         <div className="text-center mb-6">
           <div className="text-purple-300 text-xs sm:text-sm md:text-base font-medium">
-            <span>MÓDULO COGNITIVO</span>
+            <span>{content.module1}</span>
             <span className="mx-2">|</span>
-            <span>MÓDULO PRÁCTICO</span>
+            <span>{content.module2}</span>
             <span className="mx-2">|</span>
-            <span>CIERRES DE VENTAS</span>
+            <span>{content.module3}</span>
           </div>
         </div>
 
@@ -236,13 +297,13 @@ const HeroSection = () => {
             <video
               ref={videoRef}
               className="w-full aspect-video bg-black"
-              poster={posterUrl}
+              poster={content.poster_url}
               preload="metadata"
               onTimeUpdate={handleTimeUpdate}
               onLoadedMetadata={handleLoadedMetadata}
               onEnded={() => setIsPlaying(false)}
             >
-              <source src={videoUrl} type="video/mp4" />
+              <source src={content.video_url} type="video/mp4" />
               Your browser does not support the video tag.
             </video>
 
@@ -449,7 +510,7 @@ const HeroSection = () => {
 
         {/* Application button */}
         <div className="mt-8 text-center">
-          <Link href="join">
+          <Link href={content.cta_url || "join"}>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -458,7 +519,7 @@ const HeroSection = () => {
                 boxShadow: "0 0 10px rgba(138, 43, 226, 0.4)",
               }}
             >
-              Deseo Aplicar
+              {content.cta_button}
             </motion.button>
           </Link>
         </div>
