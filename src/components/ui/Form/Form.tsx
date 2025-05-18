@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { ChevronRight, ChevronLeft } from "lucide-react";
+import { addLead } from "@/lib/firebase/db";
 
 // Question types
 type QuestionType =
@@ -222,10 +223,11 @@ const TypeformQuiz: React.FC = () => {
   };
 
   // Handle option selection
-  const handleOptionSelect = (optionId: string) => {
+  const handleOptionSelect = (optionId: string, optionText: string) => {
     setAnswers({
       ...answers,
       [questions[currentQuestion].id]: optionId,
+      [`${questions[currentQuestion].id}_text`]: optionText, // Store the display text too
     });
     setError(null);
 
@@ -290,14 +292,27 @@ const TypeformQuiz: React.FC = () => {
     }
 
     try {
-      // This would be your actual submission logic
-      console.log("Form data to submit:", answers);
+      // Format the lead data for Firebase
+      const leadData = {
+        name: answers.name || "",
+        email: answers.email || "",
+        phone: answers.phone || "",
+        role: answers.role_text || answers.role || "",
+        level: answers.level_text || answers.level || "",
+        software: answers.software_text || answers.software || "",
+        clients: answers.clients_text || answers.clients || "",
+        investment: answers.investment_text || answers.investment || "",
+        why: answers.why || "",
+        status: "lead" as const, // Initial status
+      };
 
-      // Simulate API call
-      await new Promise((r) => setTimeout(r, 1500));
+      // Add to Firestore
+      const leadId = await addLead(leadData);
+      console.log("Lead successfully added with ID:", leadId);
 
       setIsSubmitted(true);
     } catch (err) {
+      console.error("Error submitting form:", err);
       setError(
         "Hubo un error al enviar el formulario. Por favor intenta de nuevo."
       );
@@ -330,7 +345,7 @@ const TypeformQuiz: React.FC = () => {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               className="w-full bg-transparent border-b-2 border-white/30 focus:border-white py-2 px-1 text-lg outline-none text-white"
-              placeholder={`Type your answer here...`}
+              placeholder="Escribe tu respuesta aquí..."
             />
           </div>
         );
@@ -379,7 +394,7 @@ const TypeformQuiz: React.FC = () => {
                 onChange={handlePhoneChange}
                 onKeyDown={handleKeyDown}
                 className="flex-1 bg-transparent border-b-2 border-white/30 focus:border-white py-2 px-1 text-lg outline-none text-white"
-                placeholder="Phone number"
+                placeholder="Número telefónico"
               />
             </div>
           </div>
@@ -391,7 +406,7 @@ const TypeformQuiz: React.FC = () => {
             {question.options?.map((option) => (
               <button
                 key={option.id}
-                onClick={() => handleOptionSelect(option.id)}
+                onClick={() => handleOptionSelect(option.id, option.text)}
                 className={`w-full text-left p-3 rounded-md transition-colors duration-200 ${
                   answers[question.id] === option.id
                     ? "bg-purple-700/70 border border-purple-500"
@@ -433,7 +448,7 @@ const TypeformQuiz: React.FC = () => {
               }}
               rows={5}
               className="w-full bg-transparent border-2 border-white/30 focus:border-white rounded-md py-2 px-3 text-lg outline-none text-white resize-none"
-              placeholder={`Type your answer here...`}
+              placeholder="Escribe tu respuesta aquí..."
             />
             <p className="text-white/60 text-xs mt-1">
               Presiona Shift + Enter para hacer un salto de línea

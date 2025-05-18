@@ -72,14 +72,12 @@ const HeroSection = () => {
         {/* Video player */}
         <div className="mx-auto rounded-lg overflow-hidden border border-gray-800 shadow-2xl max-w-3xl">
           <div className="relative">
-            {/* Video with dark overlay */}
             <div className="relative aspect-video bg-gray-900">
-              {/* Video background - studio setup */}
               <div
                 className="absolute inset-0 bg-cover bg-center opacity-60"
                 style={{
                   backgroundImage:
-                    "url('https://images.unsplash.com/photo-1598550476439-6847785fcea6?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')",
+                    "url('https://storage.cloud.google.com/edicionpersuasiva/mainVSL.mp4')",
                 }}
               />
 
