@@ -1,6 +1,7 @@
+// src/components/ui/Testimonials/Testimonials.tsx
 "use client";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   MotionDiv,
@@ -9,8 +10,66 @@ import {
 } from "@/components/ui/motion";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { getContentBySection } from "@/lib/firebase/db";
 
 const TestimonialsSection = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  // State for CMS content
+  const [content, setContent] = useState<Record<string, string>>({
+    quote:
+      "La mejor forma de editar bien y vivir bien de la edición es con un mentor que ya ha logrado lo que quieres lograr",
+    testimony1_title: "$1,275 dólares mensuales de UN SOLO CLIENTE",
+    testimony1_description:
+      "para Santiago, un mes después de haber ingresado a la academia, más un cliente extra de $110 por video",
+    testimony1_extra: "Todo, desde la bolsa de trabajo de la Academia",
+    testimony1_image: "/image/testimonials/6.jpg",
+    testimony2_title: "$1,000 dólares mensuales con UN SOLO CLIENTE",
+    testimony2_extra: "$350 dólares por video con otro cliente",
+    testimony2_description:
+      "para Andrew quien ingresó a finales de enero y en febrero adquirió el cliente desde la bolsa de trabajo de la academia.",
+    testimony2_image: "/image/testimonials/4.jpg",
+    testimony3_title: "De no saber editar a cerrar su PRIMER CLIENTE",
+    testimony3_description:
+      "Alex ingresó sin haber tocado Premiere Pro o After Effects. Hoy ya recibe pagos y le han aumentado la paga por su nivel superior de edición",
+    testimony3_quote:
+      "Fíjate que ya me delegaron más clientes en este caso el esposo de Fernanda la clienta los mismos videos de Fer y los de Gert cliente de su agencia, quiero organizarme en eso!",
+    testimony3_image: "/image/testimonials/8.jpg",
+    testimony3_whatsapp: "/image/paola.jpg",
+    cta_button: "Deseo Aplicar",
+    cta_url: "join",
+  });
+
+  // Fetch content from Firebase
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        setIsLoading(true);
+        const contentItems = await getContentBySection("testimonials");
+
+        if (contentItems.length > 0) {
+          // Create a content map
+          const contentMap: Record<string, string> = {};
+          contentItems.forEach((item) => {
+            contentMap[item.key] = item.value;
+          });
+
+          // Update state with values from CMS, keeping defaults for missing items
+          setContent((prevContent) => ({
+            ...prevContent,
+            ...contentMap,
+          }));
+        }
+      } catch (err) {
+        console.error("Error fetching testimonials content:", err);
+        // Keep default content on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchContent();
+  }, []);
+
   const containerVariant = {
     hidden: { opacity: 0 },
     visible: {
@@ -36,6 +95,14 @@ const TestimonialsSection = () => {
     hover: { boxShadow: "0 0 25px 5px rgba(138, 43, 226, 0.6)" },
   };
 
+  if (isLoading) {
+    return (
+      <section className="py-16 bg-black relative flex justify-center items-center min-h-[300px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-16 bg-black relative">
       {/* Purple glow background effects */}
@@ -52,8 +119,7 @@ const TestimonialsSection = () => {
           className="text-center max-w-4xl mx-auto"
         >
           <p className="text-xl md:text-2xl lg:text-3xl text-white font-medium italic">
-            "La mejor forma de editar bien y vivir bien de la edición es con un
-            mentor que ya ha logrado lo que quieres lograr"
+            "{content.quote}"
           </p>
         </motion.div>
       </div>
@@ -84,7 +150,7 @@ const TestimonialsSection = () => {
                 >
                   <div className="relative" style={{ height: "320px" }}>
                     <Image
-                      src="/image/testimonials/6.jpg"
+                      src={content.testimony1_image}
                       alt="Santiago's Discord conversation"
                       fill
                       className="object-contain"
@@ -96,15 +162,12 @@ const TestimonialsSection = () => {
               {/* Right side - Results summary */}
               <div className="w-full md:w-1/2 p-6 bg-[#1a1526] flex flex-col justify-center">
                 <h3 className="text-purple-300 text-2xl md:text-3xl font-bold mb-4 heading-glow">
-                  $1,275 dólares mensuales de UN SOLO CLIENTE
+                  {content.testimony1_title}
                 </h3>
                 <p className="text-gray-300 mb-4">
-                  para Santiago, un mes después de haber ingresado a la
-                  academia, más un cliente extra de $110 por video
+                  {content.testimony1_description}
                 </p>
-                <p className="text-gray-300 mb-8">
-                  Todo, desde la bolsa de trabajo de la Academia
-                </p>
+                <p className="text-gray-300 mb-8">{content.testimony1_extra}</p>
 
                 {/* Bolsa de trabajo tag */}
                 <motion.div
@@ -153,17 +216,16 @@ const TestimonialsSection = () => {
               {/* Left side - Summary */}
               <div className="w-full md:w-1/2 p-6 bg-[#1a1526] flex flex-col justify-center order-2 md:order-1">
                 <h3 className="text-purple-300 text-2xl md:text-3xl font-bold mb-2 heading-glow">
-                  $1,000 dólares mensuales con UN SOLO CLIENTE
+                  {content.testimony2_title}
                 </h3>
                 <div className="flex items-center mb-2">
                   <span className="text-2xl text-white">+</span>
                 </div>
                 <h3 className="text-purple-300 text-2xl md:text-3xl font-bold mb-4 heading-glow">
-                  $350 dólares por video con otro cliente
+                  {content.testimony2_extra}
                 </h3>
                 <p className="text-gray-300">
-                  para Andrew quien ingresó a finales de enero y en febrero
-                  adquirió el cliente desde la bolsa de trabajo de la academia.
+                  {content.testimony2_description}
                 </p>
               </div>
 
@@ -175,7 +237,7 @@ const TestimonialsSection = () => {
                 >
                   <div className="relative" style={{ height: "320px" }}>
                     <Image
-                      src="/image/testimonials/4.jpg"
+                      src={content.testimony2_image}
                       alt="Andrew's Discord conversation"
                       fill
                       className="object-contain"
@@ -204,7 +266,7 @@ const TestimonialsSection = () => {
                 >
                   <div className="relative" style={{ height: "320px" }}>
                     <Image
-                      src="/image/testimonials/8.jpg"
+                      src={content.testimony3_image}
                       alt="Alex's Discord conversation"
                       fill
                       className="object-contain"
@@ -217,20 +279,15 @@ const TestimonialsSection = () => {
               <div className="w-full md:w-1/2 p-6 bg-[#1a1526] flex flex-col justify-between">
                 <div>
                   <h3 className="text-purple-300 text-2xl md:text-3xl font-bold mb-4 heading-glow">
-                    De no saber editar a cerrar su PRIMER CLIENTE
+                    {content.testimony3_title}
                   </h3>
                   <p className="text-gray-300 mb-6">
-                    Alex ingresó sin haber tocado Premiere Pro o After Effects.
-                    Hoy ya recibe pagos y le han aumentado la paga por su nivel
-                    superior de edición
+                    {content.testimony3_description}
                   </p>
 
                   <div className="bg-gray-800/50 rounded-lg p-4 mb-6">
                     <p className="text-gray-300 text-sm">
-                      Fíjate que ya me delegaron más clientes en este caso el
-                      esposo de Fernanda la clienta los mismos videos de Fer y
-                      los de Gert cliente de su agencia, quiero organizarme en
-                      eso!
+                      {content.testimony3_quote}
                       <span className="text-gray-500 italic">(editado)</span>
                     </p>
                   </div>
@@ -244,7 +301,7 @@ const TestimonialsSection = () => {
                   >
                     <div className="relative" style={{ height: "360px" }}>
                       <Image
-                        src="/image/paola.jpg"
+                        src={content.testimony3_whatsapp}
                         alt="Paola Herrera WhatsApp conversation"
                         fill
                         className="object-contain"
@@ -256,7 +313,7 @@ const TestimonialsSection = () => {
             </div>
           </motion.div>
           <div className="mt-8 text-center">
-            <Link href="join">
+            <Link href={content.cta_url || "join"}>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -265,7 +322,7 @@ const TestimonialsSection = () => {
                   boxShadow: "0 0 10px rgba(138, 43, 226, 0.4)",
                 }}
               >
-                Deseo Aplicar
+                {content.cta_button}
               </motion.button>
             </Link>
           </div>

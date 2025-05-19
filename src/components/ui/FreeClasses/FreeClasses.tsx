@@ -1,9 +1,11 @@
+// src/components/ui/FreeClasses/FreeClasses.tsx
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { getContentBySection } from "@/lib/firebase/db";
 
 interface MasterClassCard {
   id: string;
@@ -14,8 +16,12 @@ interface MasterClassCard {
 }
 
 const FreeClassesSection: React.FC = () => {
-  // Sample masterclass data
-  const masterclasses: MasterClassCard[] = [
+  // State for CMS content
+  const [content, setContent] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Default masterclass data
+  const [masterclasses, setMasterclasses] = useState<MasterClassCard[]>([
     {
       id: "diseno-sonoro",
       title: "DISEÑO SONORO",
@@ -37,7 +43,66 @@ const FreeClassesSection: React.FC = () => {
       imageSrc: "/image/persuasion2.jpg",
       link: "https://www.loom.com/share/454f7ba87dc4497d9188aa8999a5807f?sid=f5beca92-747c-4222-b3c0-d5374ad52263",
     },
-  ];
+  ]);
+
+  // Fetch content from Firebase
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        setIsLoading(true);
+        const contentItems = await getContentBySection("free_classes");
+
+        // Create a map for easy access to content values
+        const contentMap: Record<string, string> = {};
+        contentItems.forEach((item) => {
+          contentMap[item.key] = item.value;
+        });
+
+        setContent(contentMap);
+
+        // Update the masterclasses if we have CMS content for them
+        const updatedMasterclasses = [...masterclasses];
+        let hasChanges = false;
+
+        // For each masterclass, check if we have CMS content
+        for (let i = 0; i < updatedMasterclasses.length; i++) {
+          const idPrefix = `class${i + 1}_`;
+          if (
+            contentMap[`${idPrefix}title`] ||
+            contentMap[`${idPrefix}subtitle`] ||
+            contentMap[`${idPrefix}image`] ||
+            contentMap[`${idPrefix}link`]
+          ) {
+            hasChanges = true;
+            updatedMasterclasses[i] = {
+              ...updatedMasterclasses[i],
+              title:
+                contentMap[`${idPrefix}title`] || updatedMasterclasses[i].title,
+              subtitle:
+                contentMap[`${idPrefix}subtitle`] ||
+                updatedMasterclasses[i].subtitle,
+              imageSrc:
+                contentMap[`${idPrefix}image`] ||
+                updatedMasterclasses[i].imageSrc,
+              link:
+                contentMap[`${idPrefix}link`] || updatedMasterclasses[i].link,
+            };
+          }
+        }
+
+        if (hasChanges) {
+          setMasterclasses(updatedMasterclasses);
+        }
+      } catch (err) {
+        console.error("Error fetching free classes content:", err);
+        // Keep default content on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchContent();
+  }, []);
 
   // Animation variants
   const containerVariant = {
@@ -59,6 +124,14 @@ const FreeClassesSection: React.FC = () => {
       transition: { duration: 0.6, ease: "easeOut" },
     },
   };
+
+  if (isLoading) {
+    return (
+      <div className="w-full bg-purple-950 py-16 px-4 sm:px-6 md:px-8 relative flex justify-center items-center min-h-[300px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-purple-950 py-16 px-4 sm:px-6 md:px-8 relative">
@@ -82,10 +155,10 @@ const FreeClassesSection: React.FC = () => {
           variants={itemVariant}
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 glow-text">
-            CONVIÉRTETE EN UN EDITOR IRREMPLAZABLE
+            {content.heading || "CONVIÉRTETE EN UN EDITOR IRREMPLAZABLE"}
           </h2>
           <p className="text-purple-300 text-lg md:text-xl">
-            Da click en una imagen para mirar la clase
+            {content.subheading || "Da click en una imagen para mirar la clase"}
           </p>
         </motion.div>
 

@@ -1,12 +1,58 @@
+// src/components/ui/classesCTA/ClassesCTA.tsx
 "use client";
 
-import React, { useState } from "react";
-
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { getContentBySection } from "@/lib/firebase/db";
 
 const ClassesCTA = () => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // State for CMS content
+  const [content, setContent] = useState<Record<string, string>>({
+    heading: "ACCEDE A LA ACADEMIA DE EDICION PERSUASIVA",
+    subheading: "La academia de edición MÁS COMPLETA de habla hispana",
+    module1: "MÓDULO COGNITIVO",
+    module2: "MÓDULO PRÁCTICO",
+    module3: "CIERRES DE VENTAS",
+    poster_image: "/image/hero-poster.jpg",
+    cta_button: "Deseo acceder hoy",
+    cta_url: "join",
+  });
+
+  // Fetch content from Firebase
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        setIsLoading(true);
+        const contentItems = await getContentBySection("classes_cta");
+
+        if (contentItems.length > 0) {
+          // Create a content map
+          const contentMap: Record<string, string> = {};
+          contentItems.forEach((item) => {
+            contentMap[item.key] = item.value;
+          });
+
+          // Update state with values from CMS, keeping defaults for missing items
+          setContent((prevContent) => ({
+            ...prevContent,
+            ...contentMap,
+          }));
+        }
+      } catch (err) {
+        console.error("Error fetching classes CTA content:", err);
+        // Keep default content on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchContent();
+  }, []);
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -28,8 +74,16 @@ const ClassesCTA = () => {
     },
   };
 
+  if (isLoading) {
+    return (
+      <div className="bg-black min-h-[300px] text-white overflow-hidden p-6 relative flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-black min-h-[600px] text-white  overflow-hidden p-6 relative ">
+    <div className="bg-black min-h-[600px] text-white overflow-hidden p-6 relative">
       {/* Background gradient effects */}
       <div className="absolute top-[10%] left-[10%] w-64 h-64 rounded-full bg-purple-600/20 blur-3xl" />
       <div className="absolute bottom-[5%] right-[10%] w-56 h-56 rounded-full bg-purple-600/10 blur-3xl" />
@@ -38,15 +92,15 @@ const ClassesCTA = () => {
       <div className="relative z-10">
         {/* Main heading */}
         <div className="text-center mb-3 flex flex-col items-center">
-          <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-white leading-tight ">
-            ACCEDE A LA ACADEMIA DE EDICION PERSUASIVA
+          <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-white leading-tight">
+            {content.heading}
           </h1>
         </div>
 
         {/* Module buttons */}
         <div className="text-center mb-6">
           <div className="text-purple-300 text-xs sm:text-sm md:text-xl font-medium">
-            La academia de edición MÁS COMPLETA de habla hispana
+            {content.subheading}
           </div>
         </div>
 
@@ -59,8 +113,10 @@ const ClassesCTA = () => {
               <div
                 className="absolute inset-0 bg-cover bg-center opacity-60"
                 style={{
-                  backgroundImage:
-                    "url('https://images.unsplash.com/photo-1598550476439-6847785fcea6?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')",
+                  backgroundImage: `url('${
+                    content.poster_image ||
+                    "https://images.unsplash.com/photo-1598550476439-6847785fcea6?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80"
+                  }')`,
                 }}
               />
 
@@ -73,14 +129,14 @@ const ClassesCTA = () => {
                       "0 0 10px rgba(255, 255, 255, 0.7), 0 0 20px rgba(255, 255, 255, 0.5), 0 0 30px rgba(138, 43, 226, 0.3)",
                   }}
                 >
-                  EDICIÓN PERSUASIVA
+                  {content.logo_text || "EDICIÓN PERSUASIVA"}
                 </div>
               </div>
 
               {/* Small subtitle below logo */}
               <div className="absolute bottom-12 left-0 right-0 flex justify-center">
                 <div className="text-white/80 text-xs tracking-wider">
-                  Edición Persuasiva • Diego Hernández
+                  {content.subtitle || "Edición Persuasiva • Diego Hernández"}
                 </div>
               </div>
 
@@ -208,7 +264,7 @@ const ClassesCTA = () => {
 
         {/* Application button */}
         <div className="mt-8 text-center">
-          <Link href="join">
+          <Link href={content.cta_url || "join"}>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -217,7 +273,7 @@ const ClassesCTA = () => {
                 boxShadow: "0 0 10px rgba(138, 43, 226, 0.4)",
               }}
             >
-              Deseo acceder hoy
+              {content.cta_button}
             </motion.button>
           </Link>
         </div>
