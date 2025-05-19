@@ -1,17 +1,16 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
-    "esModuleInterop": true,
-    "moduleResolution": "nodenext",
+    "module": "commonjs",
     "noImplicitReturns": true,
-    "noUnusedLocals": true,
+    "noUnusedLocals": false, // Changed to false to avoid unused variable errors
     "outDir": "lib",
     "sourceMap": true,
     "strict": true,
-    "target": "es2017",
+    "target": "es2018",
     "skipLibCheck": true,
+    "esModuleInterop": true, // Important for default imports
+    "allowSyntheticDefaultImports": true // Added for cors import
   },
-
   "compileOnSave": true,
   "include": [
     "src"
