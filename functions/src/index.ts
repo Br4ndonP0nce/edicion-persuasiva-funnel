@@ -2,6 +2,7 @@ import * as admin from 'firebase-admin';
 import * as nodemailer from 'nodemailer';
 import * as v2 from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import fetch from 'node-fetch'; // You'll need to install this: npm install node-fetch
 
 // Initialize Firebase
 admin.initializeApp();
@@ -51,12 +52,12 @@ export const onNewLeadTest = v2.onRequest({
       message: 'Test lead created',
       leadId: docRef.id
     });
-  } catch (error: Error | unknown) {
+  } catch (error) {
     console.error('Error creating test lead:', error);
     res.status(500).send({
       status: 'error',
       message: 'Failed to create test lead',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: (error as Error).message
     });
   }
 });
@@ -77,20 +78,17 @@ interface Lead {
   createdAt?: any;
 }
 
-// Updated Firestore trigger with corrected options
+// Updated Firestore trigger with webhook
 export const onNewLead = onDocumentCreated({
   document: 'leads/{leadId}',
   region: 'us-central1',
-  memory: '256MiB', // Ensure adequate memory
+  memory: '256MiB',
   maxInstances: 10,
-  timeoutSeconds: 60, // More time for email operations
-  secrets: ["GMAIL_EMAIL", "GMAIL_PASSWORD", "ADMIN_EMAIL"] // Define required secrets
-  // Removed environmentVariables property
+  timeoutSeconds: 60,
+  secrets: ["GMAIL_EMAIL", "GMAIL_PASSWORD", "ADMIN_EMAIL", "N8N_WEBHOOK_URL"]
 }, async (event) => {
   try {
     console.log('onNewLead function triggered!');
-    console.log('Document path:', event.document);
-    console.log('Parameters:', event.params);
     
     // Get the lead data
     const snapshot = event.data;
@@ -105,61 +103,87 @@ export const onNewLead = onDocumentCreated({
     // Add the ID to the lead data
     leadData.id = leadId;
     
-    console.log(`New lead created: ${leadId}`, leadData);
+    console.log(`New lead created: ${leadId}`);
     
-    // Get email config from environment variables/secrets
-    const gmailEmail = process.env.GMAIL_EMAIL;
-    const gmailPassword = process.env.GMAIL_PASSWORD;
-    const adminEmail = process.env.ADMIN_EMAIL || gmailEmail;
-    
-    console.log('Email config exists:', !!gmailEmail && !!gmailPassword);
-    
-    // If no email config, log and exit
-    if (!gmailEmail || !gmailPassword) {
-      console.error('Email configuration missing');
-      return null;
+    // PART 1: Send email notification
+    try {
+      // Get email config
+      const gmailEmail = process.env.GMAIL_EMAIL;
+      const gmailPassword = process.env.GMAIL_PASSWORD;
+      const adminEmail = process.env.ADMIN_EMAIL || gmailEmail;
+      
+      if (gmailEmail && gmailPassword) {
+        // Set up email transport
+        const mailTransport = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: gmailEmail,
+            pass: gmailPassword,
+          },
+        });
+        
+        // Create email content
+        const mailOptions = {
+          from: `Edición Persuasiva <${gmailEmail}>`,
+          to: adminEmail,
+          subject: `Nuevo Lead: ${leadData.name}`,
+          text: `
+            Nuevo lead recibido:
+            
+            Nombre: ${leadData.name}
+            Email: ${leadData.email}
+            Teléfono: ${leadData.phone}
+            ${leadData.role ? `Rol: ${leadData.role}` : ''}
+            ${leadData.level ? `Nivel: ${leadData.level}` : ''}
+            ${leadData.software ? `Software: ${leadData.software}` : ''}
+            ${leadData.clients ? `Clientes: ${leadData.clients}` : ''}
+            ${leadData.investment ? `Inversión: ${leadData.investment}` : ''}
+            ${leadData.why ? `Motivación: ${leadData.why}` : ''}
+          `,
+        };
+        
+        // Send email
+        await mailTransport.sendMail(mailOptions);
+        console.log(`Email notification sent for lead: ${leadId}`);
+      } else {
+        console.error('Email configuration missing');
+      }
+    } catch (emailError) {
+      console.error('Error sending email notification:', emailError);
+      // Continue execution even if email fails
     }
     
-    // Log for debugging
-    console.log('Setting up email transport with:', { 
-      service: 'gmail',
-      email: gmailEmail.substring(0, 3) + '...' 
-    });
-    
-    // Set up email transport
-    const mailTransport = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: gmailEmail,
-        pass: gmailPassword,
-      },
-    });
-    
-    // Create simple email content
-    const mailOptions = {
-      from: `Edición Persuasiva <${gmailEmail}>`,
-      to: adminEmail,
-      subject: `Nuevo Lead: ${leadData.name}`,
-      text: `
-        Nuevo lead recibido:
+    // PART 2: Trigger n8n webhook
+    try {
+      const webhookUrl = process.env.N8N_WEBHOOK_URL;
+      
+      if (webhookUrl) {
+        console.log(`Triggering n8n webhook for lead: ${leadId}`);
         
-        Nombre: ${leadData.name}
-        Email: ${leadData.email}
-        Teléfono: ${leadData.phone}
-        ${leadData.role ? `Rol: ${leadData.role}` : ''}
-        ${leadData.level ? `Nivel: ${leadData.level}` : ''}
-        ${leadData.software ? `Software: ${leadData.software}` : ''}
-        ${leadData.clients ? `Clientes: ${leadData.clients}` : ''}
-        ${leadData.investment ? `Inversión: ${leadData.investment}` : ''}
-        ${leadData.why ? `Motivación: ${leadData.why}` : ''}
-      `,
-    };
-    
-    console.log('Sending email to:', adminEmail);
-    
-    // Send email
-    await mailTransport.sendMail(mailOptions);
-    console.log(`Email notification sent for lead: ${leadId}`);
+        // Send lead data to n8n webhook
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            leadId,
+            ...leadData
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Webhook request failed with status ${response.status}`);
+        }
+        
+        const responseData = await response.json();
+        console.log('Webhook response:', responseData);
+      } else {
+        console.error('Webhook URL not configured');
+      }
+    } catch (webhookError) {
+      console.error('Error triggering webhook:', webhookError);
+    }
     
     return null;
   } catch (error) {
