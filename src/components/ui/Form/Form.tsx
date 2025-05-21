@@ -29,6 +29,13 @@ interface Question {
   options?: Option[];
 }
 
+// Email validation regex - RFC 5322 compliant
+const EMAIL_REGEX =
+  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
+// Phone validation - exactly 10 digits
+const PHONE_REGEX = /^\d{10}$/;
+
 // Define our form questions
 const questions: Question[] = [
   {
@@ -170,6 +177,21 @@ const countryCodes = [
   { code: "+593", country: "Ecuador" },
 ];
 
+// Validation functions
+const validateEmail = (email: string): boolean => {
+  return EMAIL_REGEX.test(email.trim());
+};
+
+const validatePhone = (phoneNumber: string): boolean => {
+  // Remove country code and spaces to get just the numbers
+  const numbersOnly = phoneNumber.replace(/^\+\d+\s/, "").replace(/\D/g, "");
+  return PHONE_REGEX.test(numbersOnly);
+};
+
+const validateName = (name: string): boolean => {
+  return name.trim().length >= 2;
+};
+
 // Main component
 const TypeformQuiz: React.FC = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -211,6 +233,38 @@ const TypeformQuiz: React.FC = () => {
     };
   }, []);
 
+  // Validation function for current question
+  const validateCurrentQuestion = (): string | null => {
+    const currentQ = questions[currentQuestion];
+    const currentValue = answers[currentQ.id];
+
+    if (currentQ.required && (!currentValue || currentValue === "")) {
+      return "Este campo es obligatorio";
+    }
+
+    if (currentValue) {
+      switch (currentQ.type) {
+        case "email":
+          if (!validateEmail(currentValue)) {
+            return "Por favor ingresa un correo electrónico válido";
+          }
+          break;
+        case "phone":
+          if (!validatePhone(currentValue)) {
+            return "El número de teléfono debe tener exactamente 10 dígitos";
+          }
+          break;
+        case "text":
+          if (currentQ.id === "name" && !validateName(currentValue)) {
+            return "El nombre debe tener al menos 2 caracteres";
+          }
+          break;
+      }
+    }
+
+    return null;
+  };
+
   // Handle input change
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -237,28 +291,28 @@ const TypeformQuiz: React.FC = () => {
     }, 300);
   };
 
-  // Handle phone input
+  // Handle phone input with validation
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only allow numbers
+    // Only allow numbers and limit to 10 digits
     const value = e.target.value.replace(/\D/g, "");
 
-    setAnswers({
-      ...answers,
-      [questions[currentQuestion].id]: `${selectedCode} ${value}`,
-    });
+    // Limit to 10 digits
+    if (value.length <= 10) {
+      setAnswers({
+        ...answers,
+        [questions[currentQuestion].id]: `${selectedCode} ${value}`,
+      });
+    }
+
     setError(null);
   };
 
   // Navigate to next question
   const handleNext = () => {
-    const currentQ = questions[currentQuestion];
+    const validationError = validateCurrentQuestion();
 
-    // Validate required field
-    if (
-      currentQ.required &&
-      (!answers[currentQ.id] || answers[currentQ.id] === "")
-    ) {
-      setError("Este campo es obligatorio");
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -281,14 +335,48 @@ const TypeformQuiz: React.FC = () => {
     setIsSubmitting(true);
 
     // Validate all required fields
-    const missingRequired = questions
-      .filter((q) => q.required)
-      .find((q) => !answers[q.id] || answers[q.id] === "");
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      const value = answers[question.id];
 
-    if (missingRequired) {
-      setError("Por favor responde todas las preguntas obligatorias");
-      setIsSubmitting(false);
-      return;
+      if (question.required && (!value || value === "")) {
+        setError(`Por favor responde la pregunta: ${question.text}`);
+        setCurrentQuestion(i);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Additional validation for specific fields
+      if (value) {
+        switch (question.type) {
+          case "email":
+            if (!validateEmail(value)) {
+              setError("Por favor ingresa un correo electrónico válido");
+              setCurrentQuestion(i);
+              setIsSubmitting(false);
+              return;
+            }
+            break;
+          case "phone":
+            if (!validatePhone(value)) {
+              setError(
+                "El número de teléfono debe tener exactamente 10 dígitos"
+              );
+              setCurrentQuestion(i);
+              setIsSubmitting(false);
+              return;
+            }
+            break;
+          case "text":
+            if (question.id === "name" && !validateName(value)) {
+              setError("El nombre debe tener al menos 2 caracteres");
+              setCurrentQuestion(i);
+              setIsSubmitting(false);
+              return;
+            }
+            break;
+        }
+      }
     }
 
     try {
@@ -345,12 +433,21 @@ const TypeformQuiz: React.FC = () => {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               className="w-full bg-transparent border-b-2 border-white/30 focus:border-white py-2 px-1 text-lg outline-none text-white"
-              placeholder="Escribe tu respuesta aquí..."
+              placeholder={
+                question.type === "email"
+                  ? "ejemplo@correo.com"
+                  : "Escribe tu respuesta aquí..."
+              }
             />
           </div>
         );
 
       case "phone":
+        const phoneValue = answers[question.id] || "";
+        const numbersOnly = phoneValue
+          .replace(`${selectedCode} `, "")
+          .replace(/\D/g, "");
+
         return (
           <div className="w-full">
             <div className="flex items-center gap-2">
@@ -387,15 +484,16 @@ const TypeformQuiz: React.FC = () => {
               <input
                 ref={inputRef}
                 type="tel"
-                value={(answers[question.id] || "")
-                  .toString()
-                  .replace(selectedCode, "")
-                  .trim()}
+                value={numbersOnly}
                 onChange={handlePhoneChange}
                 onKeyDown={handleKeyDown}
                 className="flex-1 bg-transparent border-b-2 border-white/30 focus:border-white py-2 px-1 text-lg outline-none text-white"
-                placeholder="Número telefónico"
+                placeholder="1234567890"
+                maxLength={10}
               />
+            </div>
+            <div className="text-xs text-white/60 mt-1">
+              {numbersOnly.length}/10 dígitos
             </div>
           </div>
         );
@@ -449,6 +547,7 @@ const TypeformQuiz: React.FC = () => {
               rows={5}
               className="w-full bg-transparent border-2 border-white/30 focus:border-white rounded-md py-2 px-3 text-lg outline-none text-white resize-none"
               placeholder="Escribe tu respuesta aquí..."
+              minLength={10}
             />
             <p className="text-white/60 text-xs mt-1">
               Presiona Shift + Enter para hacer un salto de línea
@@ -566,7 +665,9 @@ const TypeformQuiz: React.FC = () => {
 
               {/* Error message */}
               {error && (
-                <div className="mt-3 text-red-300 text-sm">{error}</div>
+                <div className="mt-3 text-red-300 text-sm bg-red-900/20 border border-red-500/30 rounded-md px-3 py-2">
+                  {error}
+                </div>
               )}
 
               {/* Navigation buttons */}
