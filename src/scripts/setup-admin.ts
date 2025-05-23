@@ -4,8 +4,8 @@ import { initializeDefaultAdmin } from '@/lib/firebase/rbac';
 
 // This should be run manually when setting up the system
 const setupFirstAdmin = async () => {
-  const email = 'your-admin-email@example.com'; // Replace with your email
-  const password = 'your-temp-password'; // Replace with temporary password
+    const email = 'decodenextconsultancy@gmail.com'; // Replace with your email
+    const password = 'P0nc3@Admin'; // Replace with temporary password
   
   try {
     const auth = getAuth();
@@ -25,5 +25,8 @@ const setupFirstAdmin = async () => {
   }
 };
 
-// Uncomment and run this function once to set up your first admin
+// To use this script:
+// 1. Create the user in Firebase Console first
+// 2. Update the email/password above
+// 3. Uncomment the line below and run this file
 // setupFirstAdmin();

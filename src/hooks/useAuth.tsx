@@ -1,18 +1,19 @@
 // src/hooks/useAuth.ts
-'use client';
+"use client";
 
-import { useState, useEffect, useContext, createContext, ReactNode } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase/config';
-import { 
-  getUserProfile, 
-  createUserProfile, 
-  UserProfile, 
+import { useState, useEffect, useContext, createContext } from "react";
+import type { ReactNode } from "react";
+import { User, onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/lib/firebase/config";
+import {
+  getUserProfile,
+  createUserProfile,
+  UserProfile,
   Permission,
   hasPermission,
   hasAnyPermission,
-  getAccessibleRoutes 
-} from '@/lib/firebase/rbac';
+  getAccessibleRoutes,
+} from "@/lib/firebase/rbac";
 
 // Define the context type
 interface AuthContextType {
@@ -25,19 +26,22 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
 }
 
-// Create the context - this is the key fix
-export const AuthContext = createContext<AuthContextType>({
-  user: null,
-  userProfile: null,
-  loading: true,
-  hasPermission: () => false,
-  hasAnyPermission: () => false,
-  getAccessibleRoutes: () => [],
-  refreshProfile: async () => {},
-});
+// Create the context with a default value
+const AuthContext = createContext<AuthContextType | null>(null);
 
-// AuthProvider component
-export function AuthProvider({ children }: { children: ReactNode }) {
+// Custom hook to use the auth context
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
+
+// Provider component
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const profile = await getUserProfile(user.uid);
         setUserProfile(profile);
       } catch (error) {
-        console.error('Error refreshing user profile:', error);
+        console.error("Error refreshing user profile:", error);
       }
     }
   };
@@ -56,41 +60,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
-      
+
       if (firebaseUser) {
         setUser(firebaseUser);
-        
+
         try {
-          // Get or create user profile
           let profile = await getUserProfile(firebaseUser.uid);
-          
+
           if (!profile) {
-            // Create profile for new user with default viewer role
-            await createUserProfile(firebaseUser.uid, {
-              email: firebaseUser.email || '',
-              displayName: firebaseUser.displayName || '',
-              role: 'viewer'
-            });
-            profile = await getUserProfile(firebaseUser.uid);
+            // Only auto-create profile if we're NOT on the setup page
+            const isSetupPage =
+              window.location.pathname.includes("setup-admin");
+
+            if (!isSetupPage) {
+              await createUserProfile(firebaseUser.uid, {
+                email: firebaseUser.email || "",
+                displayName: firebaseUser.displayName || "",
+                role: "viewer",
+              });
+              profile = await getUserProfile(firebaseUser.uid);
+            }
           }
-          
+
           setUserProfile(profile);
         } catch (error) {
-          console.error('Error loading user profile:', error);
+          console.error("Error loading user profile:", error);
           setUserProfile(null);
         }
       } else {
         setUser(null);
         setUserProfile(null);
       }
-      
+
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [user]); // Add user as dependency
+  }, []);
 
-  // Wrapper functions that inject userProfile
+  // Wrapper functions
   const checkPermission = (permission: Permission): boolean => {
     if (!userProfile) return false;
     return hasPermission(userProfile, permission);
@@ -106,34 +114,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return getAccessibleRoutes(userProfile);
   };
 
-  const contextValue: AuthContextType = {
+  const value: AuthContextType = {
     user,
     userProfile,
     loading,
     hasPermission: checkPermission,
     hasAnyPermission: checkAnyPermission,
     getAccessibleRoutes: getUserRoutes,
-    refreshProfile
+    refreshProfile,
   };
 
-    return (
-        <AuthContext.Provider>
-        </AuthContext>
-  
-  
-  
-  );
-}
-/*  <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>*/ 
-// useAuth hook
-export function useAuth(): AuthContextType {
-  const context = useContext(AuthContext);
-  
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  
-  return context;
-}
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};

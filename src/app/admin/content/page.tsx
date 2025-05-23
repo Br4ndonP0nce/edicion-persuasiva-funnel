@@ -1,5 +1,6 @@
 // src/app/admin/content/page.tsx
 "use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -20,7 +21,6 @@ import {
   RefreshCw,
   Lock,
 } from "lucide-react";
-
 const sections = [
   {
     id: "hero",

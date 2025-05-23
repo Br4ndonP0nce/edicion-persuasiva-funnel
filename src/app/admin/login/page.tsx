@@ -1,9 +1,12 @@
+// src/app/admin/login/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { signIn, onAuthChange } from "@/lib/firebase/auth";
+import { signIn } from "@/lib/firebase/auth";
+import { auth } from "@/lib/firebase/config";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -14,7 +17,7 @@ export default function LoginPage() {
 
   // Check if already authenticated
   useEffect(() => {
-    const unsubscribe = onAuthChange((user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         router.push("/admin");
       }
@@ -30,9 +33,8 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password);
-      // No need to navigate - the auth state change will trigger it
+      router.push("/admin");
     } catch (error: any) {
-      // Handle specific Firebase auth errors
       const errorCode = error.code;
 
       switch (errorCode) {
@@ -60,13 +62,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-b from-purple-900 to-purple-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <Image
-            src="/images/logo.png" // Update with your logo path
-            alt="Edición Persuasiva"
-            width={200}
-            height={50}
-            className="h-auto w-auto"
-          />
+          <div className="text-white text-2xl font-bold">
+            EDICIÓN PERSUASIVA
+          </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
           Acceso Admin
@@ -93,6 +91,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="tu-email@ejemplo.com"
                 />
               </div>
             </div>
@@ -138,6 +137,17 @@ export default function LoginPage() {
               </button>
             </div>
           </form>
+
+          <div className="mt-6">
+            <div className="text-center">
+              <a
+                href="/setup-admin"
+                className="text-sm text-purple-600 hover:text-purple-500"
+              >
+                ¿Primera vez? Configurar admin
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { AuthProvider } from "@/hooks/useAuth";
-import { ReactNode } from "react";
-
-interface RootLayoutWrapperProps {
-  children: ReactNode;
-}
 import "./globals.css";
+import RootLayoutWrapper from "./root-layout-wrapper";
 import Header from "@/components/ui/Header";
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,8 +19,18 @@ export const metadata: Metadata = {
     "Para editores que quieran lograr más y cobrar mucho más. Aprende cómo ganar mínimo $2,000 dólares mensuales editando y con pocos clientes.",
 };
 
-export default function RootLayoutWrapper({
+export default function RootLayout({
   children,
-}: RootLayoutWrapperProps) {
-  return <AuthProvider>{children}</AuthProvider>;
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        {children}
+      </body>
+    </html>
+  );
 }
