@@ -45,7 +45,7 @@ import {
     super_admin: {
       id: 'super_admin',
       name: 'Super Admin',
-      description: 'Full system access including user management',
+      description: 'Acceso completo a todas las funciones y configuraciones',
       permissions: [
         'dashboard:read',
         'leads:read', 'leads:write', 'leads:delete',
@@ -59,7 +59,7 @@ import {
     admin: {
       id: 'admin',
       name: 'Admin',
-      description: 'Full access except user management',
+      description: 'Acceso completo a todas las funciones y configuraciones, excepto gestión de usuarios',
       permissions: [
         'dashboard:read',
         'leads:read', 'leads:write', 'leads:delete',
@@ -72,7 +72,7 @@ import {
     crm_user: {
       id: 'crm_user',
       name: 'CRM User',
-      description: 'Access to leads and basic analytics',
+      description: 'Acceso a leads y estadísticas',
       permissions: [
         'dashboard:read',
         'leads:read', 'leads:write',
@@ -83,7 +83,7 @@ import {
     viewer: {
       id: 'viewer',
       name: 'Viewer',
-      description: 'Read-only access to dashboard and stats',
+      description: 'acceso solo de lectura a estadísticas y dashboard',
       permissions: [
         'dashboard:read',
         'stats:read'

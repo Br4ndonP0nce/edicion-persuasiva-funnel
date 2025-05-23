@@ -23,8 +23,7 @@ import { initializeApp, getApps,deleteApp } from 'firebase/app';
     let secondaryAuth;
     
     try {
-      console.log('🚀 ULTIMATE: Creating user without admin logout');
-      console.log('📝 User details:', { email, role, displayName });
+     
       
       // Create a secondary Firebase app instance
       const firebaseConfig = {
@@ -41,19 +40,18 @@ import { initializeApp, getApps,deleteApp } from 'firebase/app';
       secondaryApp = initializeApp(firebaseConfig, appName);
       secondaryAuth = getAuth(secondaryApp);
       
-      console.log('✅ Secondary Firebase app created');
+     
       
       // Create user using secondary auth (won't affect main session)
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
       const newUser = userCredential.user;
       
-      console.log('✅ User created with secondary auth:', newUser.uid);
+     
       
       // Get current admin info for createdBy field
       const currentAdmin = auth.currentUser;
       const createdByUid = currentAdmin?.uid;
       
-      console.log('👤 Current admin still logged in:', currentAdmin?.email);
       
       // Create user profile with EXPLICIT data
       await createUserProfileFixed(newUser.uid, {
@@ -67,9 +65,9 @@ import { initializeApp, getApps,deleteApp } from 'firebase/app';
       
       // Clean up secondary app
       await deleteApp(secondaryApp);
-      console.log('🧹 Secondary app cleaned up');
+     
       
-      console.log('🎉 SUCCESS: User created without affecting admin session!');
+      
       
       return { 
         success: true, 
@@ -77,7 +75,7 @@ import { initializeApp, getApps,deleteApp } from 'firebase/app';
       };
   
     } catch (error: any) {
-      console.error('❌ Error in ultimate user creation:', error);
+      console.error('❌ Error in  user creation:', error);
       
       // Clean up secondary app on error
       if (secondaryApp) {
@@ -241,12 +239,12 @@ import { initializeApp, getApps,deleteApp } from 'firebase/app';
    */
   export const reAuthenticateAdmin = async (adminEmail: string, adminPassword: string) => {
     try {
-      console.log('🔐 Re-authenticating admin:', adminEmail);
+      
       await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
       console.log('✅ Admin re-authenticated successfully');
       return { success: true };
     } catch (error: any) {
-      console.error('❌ Re-authentication failed:', error);
+     
       return { success: false, error: error.message };
     }
   };
