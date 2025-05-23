@@ -77,9 +77,6 @@ export default function UsersPage() {
     setError(null);
 
     try {
-      console.log("🚀 ULTIMATE: Starting user creation process");
-      console.log("📋 Form data:", newUserData);
-
       // Import the ultimate function
       const { createUserAsAdminNoLogout } = await import(
         "@/lib/firebase/admin-auth"
@@ -94,8 +91,6 @@ export default function UsersPage() {
       );
 
       if (result.success) {
-        console.log("🎉 SUCCESS: User created without admin logout!");
-
         // Reset form
         setNewUserData({
           email: "",
@@ -112,7 +107,6 @@ export default function UsersPage() {
         setError(null);
 
         // Optional: Show success message
-        console.log("✅ User creation completed successfully");
       } else {
         console.error("❌ User creation failed:", result.error);
         setError(result.error || "Failed to create user");
@@ -140,7 +134,6 @@ export default function UsersPage() {
       );
 
       if (result.success) {
-        console.log("✅ Admin re-authenticated successfully");
         setShowReAuthModal(false);
         setAdminPassword("");
         setNewUserCreated(null);
@@ -232,7 +225,7 @@ export default function UsersPage() {
         {showCreateForm && hasPermission("users:write") && (
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Create New User</CardTitle>
+              <CardTitle>Crear un nuevo usuario</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreateUser} className="space-y-4">
@@ -263,7 +256,7 @@ export default function UsersPage() {
                       htmlFor="displayName"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Display Name
+                      Nombre
                     </label>
                     <input
                       id="displayName"
@@ -284,7 +277,7 @@ export default function UsersPage() {
                       htmlFor="password"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Temporary Password
+                      Contraseña para el usuario
                     </label>
                     <input
                       id="password"
@@ -306,7 +299,7 @@ export default function UsersPage() {
                       htmlFor="role"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Role
+                      Rol en sistema
                     </label>
                     <select
                       id="role"
@@ -399,7 +392,7 @@ export default function UsersPage() {
         {/* Users Table */}
         <Card>
           <CardHeader>
-            <CardTitle>All Users ({users.length})</CardTitle>
+            <CardTitle>Todos los usuarios ({users.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
