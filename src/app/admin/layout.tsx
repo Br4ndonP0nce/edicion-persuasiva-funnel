@@ -19,5 +19,3 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     </AuthProvider>
   );
 }
-
-// src/components/ui/admin/DashboardLayout.tsx - Updated with RBAC

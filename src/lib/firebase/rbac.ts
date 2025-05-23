@@ -135,51 +135,109 @@ import {
     createdByUid?: string
   ): Promise<void> => {
     try {
+      console.log('🔧 createUserProfile called with:');
+      console.log('   UID:', uid);
+      console.log('   UserData:', userData);
+      console.log('   Role in userData:', userData.role);
+      console.log('   CreatedBy:', createdByUid);
+      
       const userRef = doc(db, USERS_COLLECTION, uid);
       const existingUser = await getDoc(userRef);
       
       if (existingUser.exists()) {
-        // Update existing user - only include defined values
-        const updateData: any = {
+        console.log('📝 Updating existing user');
+        
+        // Create update data with proper typing - FIXED TypeScript issue
+        const updateData: Record<string, any> = {
           ...userData,
           updatedAt: serverTimestamp()
         };
         
-        // Remove any undefined values
-        Object.keys(updateData).forEach(key => {
-          if (updateData[key] === undefined) {
-            delete updateData[key];
+        // Remove undefined values using Object.entries - FIXED TypeScript issue
+        const cleanUpdateData: Record<string, any> = {};
+        Object.entries(updateData).forEach(([key, value]) => {
+          if (value !== undefined) {
+            cleanUpdateData[key] = value;
           }
         });
         
-        await updateDoc(userRef, updateData);
+        console.log('📤 Clean update data:', cleanUpdateData);
+        await updateDoc(userRef, cleanUpdateData);
+        console.log('✅ Updated existing user profile');
+        
       } else {
-        // Create new user - only include defined values
-        const newUserData: any = {
-          uid,
-          role: 'viewer', // Default role
-          isActive: true,
+        console.log('🆕 Creating new user profile');
+        
+        // Build new user data with explicit field assignment - FIXED role issue
+        const newUserData: Record<string, any> = {
+          uid: uid,
+          email: userData.email || '',
+          displayName: userData.displayName || '',
+          role: userData.role || 'viewer', // CRITICAL: Use the provided role first
+          isActive: userData.isActive !== undefined ? userData.isActive : true,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-          ...userData
         };
         
-        // Only add createdBy if it's defined
-        if (createdByUid) {
-          newUserData.createdBy = createdByUid;
+        console.log('📦 Base user data built:', newUserData);
+        console.log('🎯 Role assigned as:', newUserData.role);
+        
+        // Add optional fields only if they exist
+        if (userData.permissions && userData.permissions.length > 0) {
+          newUserData.permissions = userData.permissions;
+          console.log('🔐 Added custom permissions:', userData.permissions);
         }
         
-        // Remove any undefined values
-        Object.keys(newUserData).forEach(key => {
-          if (newUserData[key] === undefined) {
-            delete newUserData[key];
-          }
-        });
+        if (createdByUid) {
+          newUserData.createdBy = createdByUid;
+          console.log('👤 Added createdBy:', createdByUid);
+        }
         
+        if (userData.lastLoginAt) {
+          newUserData.lastLoginAt = userData.lastLoginAt;
+        }
+        
+        // Final check before saving
+        console.log('📤 Final data to be saved to Firestore:');
+        console.log(JSON.stringify(newUserData, null, 2));
+        console.log('🎯 FINAL ROLE CONFIRMATION:', newUserData.role);
+        
+        // Save to Firestore
         await setDoc(userRef, newUserData);
+        console.log('✅ User profile saved to Firestore');
+        
+        // Verification step - read back what was saved
+        console.log('🔍 Verifying what was actually saved...');
+        const savedDoc = await getDoc(userRef);
+        if (savedDoc.exists()) {
+          const savedData = savedDoc.data();
+          console.log('💾 Verification - Data read from Firestore:');
+          console.log(JSON.stringify(savedData, null, 2));
+          console.log('💾 Verification - Role in database:', savedData.role);
+          
+          // Alert if there's a role mismatch
+          if (savedData.role !== userData.role) {
+            console.error('🚨 CRITICAL: ROLE MISMATCH DETECTED!');
+            console.error('   🎯 Expected role:', userData.role);
+            console.error('   💾 Actual role in DB:', savedData.role);
+            console.error('   📋 Full userData passed:', userData);
+            console.error('   💿 Full data in DB:', savedData);
+          } else {
+            console.log('✅ SUCCESS: Role correctly saved as:', savedData.role);
+          }
+        } else {
+          console.error('❌ ERROR: Could not read back the saved document!');
+        }
       }
     } catch (error) {
-      console.error('Error creating user profile:', error);
+      console.error('❌ Error in createUserProfile:', error);
+      console.error('❌ Error details:', {
+        uid,
+        userData,
+        createdByUid,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: error instanceof Error && 'code' in error ? error.code : 'unknown'
+      });
       throw error;
     }
   };

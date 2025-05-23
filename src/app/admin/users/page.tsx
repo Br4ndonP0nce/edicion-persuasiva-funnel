@@ -13,6 +13,10 @@ import {
   SYSTEM_ROLES,
   createUserProfile,
 } from "@/lib/firebase/rbac";
+import {
+  createUserAsAdminNoLogout,
+  reAuthenticateAdmin,
+} from "@/lib/firebase/admin-auth";
 import { createUser } from "@/lib/firebase/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +40,9 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [showReAuthModal, setShowReAuthModal] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [newUserCreated, setNewUserCreated] = useState<string | null>(null);
 
   // New user form state
   const [newUserData, setNewUserData] = useState({
@@ -70,33 +77,86 @@ export default function UsersPage() {
     setError(null);
 
     try {
-      // Create Firebase Auth user
-      const newUser = await createUser(newUserData.email, newUserData.password);
+      console.log("🚀 ULTIMATE: Starting user creation process");
+      console.log("📋 Form data:", newUserData);
 
-      // Create user profile in Firestore
-      await createUserProfile(
-        newUser.uid,
-        {
-          email: newUserData.email,
-          displayName: newUserData.displayName,
-          role: newUserData.role,
-          isActive: true,
-        },
-        userProfile?.uid
+      // Import the ultimate function
+      const { createUserAsAdminNoLogout } = await import(
+        "@/lib/firebase/admin-auth"
       );
 
-      // Reset form and refresh users
-      setNewUserData({
-        email: "",
-        password: "",
-        displayName: "",
-        role: "crm_user",
-      });
-      setShowCreateForm(false);
-      await fetchUsers();
+      // Create user using the ultimate method (no logout!)
+      const result = await createUserAsAdminNoLogout(
+        newUserData.email,
+        newUserData.password,
+        newUserData.role,
+        newUserData.displayName
+      );
+
+      if (result.success) {
+        console.log("🎉 SUCCESS: User created without admin logout!");
+
+        // Reset form
+        setNewUserData({
+          email: "",
+          password: "",
+          displayName: "",
+          role: "crm_user",
+        });
+        setShowCreateForm(false);
+
+        // Refresh the users list
+        await fetchUsers();
+
+        // Clear any previous errors
+        setError(null);
+
+        // Optional: Show success message
+        console.log("✅ User creation completed successfully");
+      } else {
+        console.error("❌ User creation failed:", result.error);
+        setError(result.error || "Failed to create user");
+      }
     } catch (err: any) {
-      console.error("Error creating user:", err);
+      console.error("❌ Error in handleCreateUser:", err);
       setError(err.message || "Failed to create user");
+    } finally {
+      setCreating(false);
+    }
+  };
+  const handleReAuthentication = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    setError(null);
+
+    try {
+      if (!userProfile?.email) {
+        throw new Error("Current user email not found");
+      }
+
+      const result = await reAuthenticateAdmin(
+        userProfile.email,
+        adminPassword
+      );
+
+      if (result.success) {
+        console.log("✅ Admin re-authenticated successfully");
+        setShowReAuthModal(false);
+        setAdminPassword("");
+        setNewUserCreated(null);
+
+        // Refresh the users list
+        await fetchUsers();
+
+        // Show success message
+        setError(null);
+        // You could add a success state here if needed
+      } else {
+        setError(result.error || "Re-authentication failed");
+      }
+    } catch (err: any) {
+      console.error("Error re-authenticating:", err);
+      setError(err.message || "Re-authentication failed");
     } finally {
       setCreating(false);
     }
@@ -178,8 +238,13 @@ export default function UsersPage() {
               <form onSubmit={handleCreateUser} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input
+                    <label
+                      htmlFor="email"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Email
+                    </label>
+                    <input
                       id="email"
                       type="email"
                       value={newUserData.email}
@@ -189,12 +254,18 @@ export default function UsersPage() {
                           email: e.target.value,
                         })
                       }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                       required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="displayName">Display Name</Label>
-                    <Input
+                    <label
+                      htmlFor="displayName"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Display Name
+                    </label>
+                    <input
                       id="displayName"
                       type="text"
                       value={newUserData.displayName}
@@ -204,12 +275,18 @@ export default function UsersPage() {
                           displayName: e.target.value,
                         })
                       }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                       required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="password">Temporary Password</Label>
-                    <Input
+                    <label
+                      htmlFor="password"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Temporary Password
+                    </label>
+                    <input
                       id="password"
                       type="password"
                       value={newUserData.password}
@@ -219,12 +296,18 @@ export default function UsersPage() {
                           password: e.target.value,
                         })
                       }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                       required
                       minLength={6}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="role">Role</Label>
+                    <label
+                      htmlFor="role"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Role
+                    </label>
                     <select
                       id="role"
                       value={newUserData.role}
@@ -245,20 +328,72 @@ export default function UsersPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" disabled={creating}>
+                  <button
+                    type="submit"
+                    disabled={creating}
+                    className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
+                  >
                     {creating ? "Creating..." : "Create User"}
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     type="button"
-                    variant="outline"
                     onClick={() => setShowCreateForm(false)}
+                    className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
                   >
                     Cancel
-                  </Button>
+                  </button>
                 </div>
               </form>
             </CardContent>
           </Card>
+        )}
+        {showReAuthModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4">
+                ✅ User Created Successfully!
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                To maintain security, please re-enter your admin password to
+                continue managing users.
+              </p>
+              <form onSubmit={handleReAuthentication}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Your Admin Password
+                  </label>
+                  <input
+                    type="password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Enter your password"
+                    required
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={creating}
+                    className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
+                  >
+                    {creating ? "Signing In..." : "Continue as Admin"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowReAuthModal(false);
+                      setAdminPassword("");
+                      window.location.reload(); // Force refresh to clear any auth issues
+                    }}
+                    className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                  >
+                    Refresh Page
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
 
         {/* Users Table */}
