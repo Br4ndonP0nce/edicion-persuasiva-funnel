@@ -139,22 +139,44 @@ import {
       const existingUser = await getDoc(userRef);
       
       if (existingUser.exists()) {
-        // Update existing user
-        await updateDoc(userRef, {
+        // Update existing user - only include defined values
+        const updateData: any = {
           ...userData,
           updatedAt: serverTimestamp()
+        };
+        
+        // Remove any undefined values
+        Object.keys(updateData).forEach(key => {
+          if (updateData[key] === undefined) {
+            delete updateData[key];
+          }
         });
+        
+        await updateDoc(userRef, updateData);
       } else {
-        // Create new user
-        await setDoc(userRef, {
+        // Create new user - only include defined values
+        const newUserData: any = {
           uid,
           role: 'viewer', // Default role
           isActive: true,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-          createdBy: createdByUid,
           ...userData
+        };
+        
+        // Only add createdBy if it's defined
+        if (createdByUid) {
+          newUserData.createdBy = createdByUid;
+        }
+        
+        // Remove any undefined values
+        Object.keys(newUserData).forEach(key => {
+          if (newUserData[key] === undefined) {
+            delete newUserData[key];
+          }
         });
+        
+        await setDoc(userRef, newUserData);
       }
     } catch (error) {
       console.error('Error creating user profile:', error);
@@ -302,13 +324,23 @@ import {
       const existingProfile = await getUserProfile(adminUser.uid);
       
       if (!existingProfile) {
-        await createUserProfile(adminUser.uid, {
+        // Create admin profile with only defined values
+        const adminData: Partial<UserProfile> = {
           email: adminUser.email || '',
-          displayName: adminUser.displayName || 'Admin',
           role: 'super_admin',
           isActive: true
-        });
+        };
+        
+        // Only add displayName if it exists
+        if (adminUser.displayName) {
+          adminData.displayName = adminUser.displayName;
+        }
+        
+        // Don't pass createdByUid since this is the initial admin
+        await createUserProfile(adminUser.uid, adminData);
         console.log('Default admin user initialized');
+      } else {
+        console.log('Admin user already exists');
       }
     } catch (error) {
       console.error('Error initializing default admin:', error);
