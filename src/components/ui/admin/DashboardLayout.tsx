@@ -1,9 +1,10 @@
-// src/components/ui/admin/DashboardLayout.tsx - Updated with better mobile responsiveness
 import React, { ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/firebase/auth";
+import { useAuth } from "@/hooks/useAuth";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 import {
   Home,
   Users,
@@ -14,6 +15,8 @@ import {
   X,
   Bell,
   FileText,
+  UserCog,
+  Shield,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -24,20 +27,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const [isMobile, setIsMobile] = useState(false);
+  const { userProfile, hasPermission } = useAuth();
 
   // Check if the device is mobile based on viewport width
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768); // 768px is the 'md' breakpoint in Tailwind
+      setIsMobile(window.innerWidth < 768);
     };
 
-    // Initial check
     checkMobile();
-
-    // Listen for resize events
     window.addEventListener("resize", checkMobile);
-
-    // Cleanup
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
@@ -49,13 +48,50 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     }
   };
 
+  // Dynamic navigation based on user permissions
   const navigation = [
-    { name: "Dashboard", href: "/admin", icon: Home },
-    { name: "Leads", href: "/admin/leads", icon: Users },
-    { name: "Estadísticas", href: "/admin/stats", icon: BarChart2 },
-    { name: "Configuración", href: "/admin/settings", icon: Settings },
-    { name: "Contenido", href: "/admin/content", icon: FileText },
+    {
+      name: "Dashboard",
+      href: "/admin",
+      icon: Home,
+      permission: "dashboard:read" as const,
+    },
+    {
+      name: "Leads",
+      href: "/admin/leads",
+      icon: Users,
+      permission: "leads:read" as const,
+    },
+    {
+      name: "Estadísticas",
+      href: "/admin/stats",
+      icon: BarChart2,
+      permission: "stats:read" as const,
+    },
+    {
+      name: "Contenido",
+      href: "/admin/content",
+      icon: FileText,
+      permission: "content:read" as const,
+    },
+    {
+      name: "Usuarios",
+      href: "/admin/users",
+      icon: UserCog,
+      permission: "users:read" as const,
+    },
+    {
+      name: "Configuración",
+      href: "/admin/settings",
+      icon: Settings,
+      permission: "settings:read" as const,
+    },
   ];
+
+  // Filter navigation items based on user permissions
+  const accessibleNavigation = navigation.filter((item) =>
+    hasPermission(item.permission)
+  );
 
   const isActive = (path: string) => {
     if (path === "/admin" && pathname === "/admin") {
@@ -74,18 +110,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         ></div>
       )}
 
-      {/* Sidebar - hidden on mobile by default, shown when sidebarOpen is true */}
+      {/* Sidebar */}
       <div
         className={`fixed inset-y-0 left-0 flex flex-col w-64 bg-purple-900 text-white transform transition-transform ease-in-out duration-300 z-50
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           md:relative md:translate-x-0`}
       >
-        {/* Sidebar header with close button */}
+        {/* Sidebar header */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-purple-800">
           <Link href="/">
             <div className="flex items-center">
               <Image
-                src="/image/logo.jpg" // Make sure this path is correct
+                src="/image/logo.jpg"
                 alt="Edición Persuasiva"
                 width={120}
                 height={30}
@@ -101,10 +137,36 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </button>
         </div>
 
+        {/* User info */}
+        <div className="px-4 py-3 border-b border-purple-800">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-purple-700 flex items-center justify-center">
+                <span className="text-sm font-medium text-white">
+                  {userProfile?.displayName?.charAt(0)?.toUpperCase() ||
+                    userProfile?.email?.charAt(0)?.toUpperCase() ||
+                    "U"}
+                </span>
+              </div>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-white">
+                {userProfile?.displayName || userProfile?.email}
+              </p>
+              <div className="flex items-center gap-2">
+                <Shield className="w-3 h-3 text-purple-300" />
+                <p className="text-xs text-purple-300 capitalize">
+                  {userProfile?.role?.replace("_", " ")}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Sidebar navigation */}
         <nav className="flex-1 pt-4 pb-4 overflow-y-auto">
           <div className="px-2 space-y-1">
-            {navigation.map((item) => (
+            {accessibleNavigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
@@ -113,7 +175,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                     ? "bg-purple-800 text-white"
                     : "text-purple-200 hover:bg-purple-700 hover:text-white"
                 }`}
-                onClick={() => isMobile && setSidebarOpen(false)} // Close sidebar on mobile after clicking
+                onClick={() => isMobile && setSidebarOpen(false)}
               >
                 <item.icon
                   className={`mr-3 h-5 w-5 ${
@@ -142,9 +204,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
       {/* Main content */}
       <div className="flex flex-col w-0 flex-1 overflow-hidden">
-        {/* Top header - always visible on mobile */}
+        {/* Top header */}
         <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow">
-          {/* Mobile menu button - ALWAYS visible on mobile screens */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 md:hidden"
@@ -163,8 +224,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 <span className="sr-only">View notifications</span>
                 <Bell className="h-6 w-6" />
               </button>
-
-              {/* Profile dropdown could go here */}
             </div>
           </div>
         </div>
