@@ -286,7 +286,7 @@ const ClassesCTA = () => {
                   onClick={togglePlay}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
-                  className="w-16 h-16 rounded-full flex items-center justify-center hover:bg-purple-500 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-black"
+                  className="w-16 h-16 rounded-full flex items-center justify-center transition-colors duration-300 focus:outline-none focus:ring-2  focus:ring-offset-2 focus:ring-offset-black"
                   aria-label="Play video"
                 >
                   <svg
