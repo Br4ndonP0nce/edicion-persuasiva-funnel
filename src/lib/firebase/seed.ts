@@ -54,7 +54,7 @@ const initialContent: SeedContentItem[] = [
     section: 'hero',
     key: 'video_url',
     type: 'video',
-    value: 'https://storage.googleapis.com/edicionpersuasiva/mainVSL.mp4',
+    value: 'https://cdn.edicionpersuasiva.com/mainVSL.mp4',
     label: 'Main Video URL'
   },
   {

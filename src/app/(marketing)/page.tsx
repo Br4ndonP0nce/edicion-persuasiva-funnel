@@ -1,3 +1,4 @@
+// src/app/(marketing)/page.tsx
 "use client";
 import Image from "next/image";
 import HeroSection from "@/components/ui/Hero/Hero";
@@ -5,28 +6,41 @@ import BenefitsSection from "@/components/ui/Benefits/Benefits";
 import TestimonialsSection from "@/components/ui/Testimonials/Testimonials";
 import SuccessSection from "@/components/ui/success/Success";
 import MentorSection from "@/components/ui/Mentor/Mentor";
-import Preloader from "@/components/ui/Preloader/Preloader";
+import EnhancedPreloader from "@/components/ui/Preloader/EnhancedPreloader";
 import MasterClassSection from "@/components/ui/MasterClass/MasterClass";
 import { useState, useEffect } from "react";
+
 export default function Home() {
   const [loading, setLoading] = useState(true);
+  const [contentReady, setContentReady] = useState(false);
 
-  useEffect(() => {
-    // Simulate loading assets
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2500);
+  // Main video URL - should match what's in Hero section
+  const mainVideoUrl = "https://cdn.edicionpersuasiva.com/mainVSL.mp4";
 
-    return () => clearTimeout(timer);
-  }, []);
+  const handlePreloadComplete = () => {
+    console.log("🎉 Preloader completed - video should be ready");
+    setLoading(false);
+
+    // Small delay to ensure smooth transition
+    setTimeout(() => {
+      setContentReady(true);
+    }, 100);
+  };
 
   return (
     <main className="relative min-h-screen bg-black">
-      {loading && <Preloader />}
+      {loading && (
+        <EnhancedPreloader
+          videoUrl={mainVideoUrl}
+          onComplete={handlePreloadComplete}
+          minDuration={2000} // 2 seconds minimum for branding
+        />
+      )}
+
       <div
-        className={
-          loading ? "opacity-0" : "opacity-100 transition-opacity duration-500"
-        }
+        className={`transition-opacity duration-500 ${
+          contentReady ? "opacity-100" : "opacity-0"
+        }`}
       >
         <HeroSection />
         <TestimonialsSection />
@@ -35,7 +49,6 @@ export default function Home() {
         <MentorSection />
         <MasterClassSection />
       </div>
-      {/* Add more sections as needed */}
     </main>
   );
 }
