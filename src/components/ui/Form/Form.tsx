@@ -34,7 +34,7 @@ const EMAIL_REGEX =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
 // Phone validation - exactly 10 digits
-const PHONE_REGEX = /^\d{10}$/;
+const PHONE_REGEX = /^\d{8,10}$/;
 
 // Define our form questions
 const questions: Question[] = [
@@ -251,7 +251,7 @@ const TypeformQuiz: React.FC = () => {
           break;
         case "phone":
           if (!validatePhone(currentValue)) {
-            return "El número de teléfono debe tener exactamente 10 dígitos";
+            return "El número de teléfono debe tener exactamente entre 8 y 10 dígitos";
           }
           break;
         case "text":
@@ -360,7 +360,7 @@ const TypeformQuiz: React.FC = () => {
           case "phone":
             if (!validatePhone(value)) {
               setError(
-                "El número de teléfono debe tener exactamente 10 dígitos"
+                "El número de teléfono debe tener exactamente entre 8 y 10 dígitos"
               );
               setCurrentQuestion(i);
               setIsSubmitting(false);
@@ -493,7 +493,9 @@ const TypeformQuiz: React.FC = () => {
               />
             </div>
             <div className="text-xs text-white/60 mt-1">
-              {numbersOnly.length}/10 dígitos
+              {numbersOnly.length >= 8 && numbersOnly.length <= 10 ? (
+                <span className="text-green-500">✅</span>
+              ) : null}
             </div>
           </div>
         );
