@@ -148,11 +148,11 @@ const EnhancedPreloader: React.FC<EnhancedPreloaderProps> = ({
               transition={{ duration: 1.5, repeat: Infinity }}
             >
               {isPreloading && !videoError
-                ? `Cargando video... ${Math.round(displayProgress)}%`
+                ? ` ${Math.round(displayProgress)}%`
                 : videoError
                 ? "Preparando experiencia..."
                 : isVideoReady
-                ? "¡Listo!"
+                ? ""
                 : `Cargando... ${Math.round(displayProgress)}%`}
             </motion.div>
 
