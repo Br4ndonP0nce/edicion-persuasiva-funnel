@@ -34,7 +34,7 @@ const EMAIL_REGEX =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
 // Phone validation - exactly 10 digits
-const PHONE_REGEX = /^\d{10}$/;
+const PHONE_REGEX = /^\d{8,10}$/;
 
 // Define our form questions
 const questions: Question[] = [
