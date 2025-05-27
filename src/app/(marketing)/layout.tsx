@@ -1,6 +1,9 @@
+// src/app/(marketing)/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Header from "@/components/ui/Header";
+import { VideoPreloadProvider } from "@/contexts/VideoPreloadContent";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -17,15 +20,19 @@ export const metadata: Metadata = {
     "Para editores que quieran lograr más y cobrar mucho más. Aprende cómo ganar mínimo $2,000 dólares mensuales editando y con pocos clientes.",
 };
 
-export default function clasesLayout({
+export default function MarketingLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <div className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-      <Header />
-      {children}
-    </div>
+    <VideoPreloadProvider>
+      <div
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <Header />
+        {children}
+      </div>
+    </VideoPreloadProvider>
   );
 }
