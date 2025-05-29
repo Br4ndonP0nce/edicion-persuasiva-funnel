@@ -3,7 +3,7 @@
 
 import React, { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { createSale, addPaymentProof } from "@/lib/firebase/sales";
+import { createSale } from "@/lib/firebase/sales";
 import { PAYMENT_PLANS } from "@/types/sales";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ export const SaleModal: React.FC<SaleModalProps> = ({
   );
   const [paymentPlan, setPaymentPlan] = useState<
     "1_pago" | "2_pagos" | "3_pagos"
-  >("1_pago");
+  >("1_pago"); // FIXED: Proper typing
   const [customAmount, setCustomAmount] = useState<number>(0);
   const [paymentProofs, setPaymentProofs] = useState<PaymentProofData[]>([
     { amount: 0, imageFile: null, description: "" },
@@ -174,12 +174,12 @@ export const SaleModal: React.FC<SaleModalProps> = ({
         0
       );
 
-      // Create sale
+      // Create sale - FIXED: Proper payment plan typing
       const saleData = {
         leadId,
         saleUserId: userProfile.uid,
         product,
-        paymentPlan: product === "others" ? "custom" : paymentPlan,
+        paymentPlan: product === "others" ? ("custom" as const) : paymentPlan,
         totalAmount: getTotalAmount(),
         paidAmount: totalPaid,
         paymentProofs: uploadedProofs.map((proof, index) => ({
@@ -311,7 +311,12 @@ export const SaleModal: React.FC<SaleModalProps> = ({
                               value={key}
                               checked={paymentPlan === key}
                               onChange={(e) =>
-                                setPaymentPlan(e.target.value as any)
+                                setPaymentPlan(
+                                  e.target.value as
+                                    | "1_pago"
+                                    | "2_pagos"
+                                    | "3_pagos"
+                                )
                               }
                               className="mr-3"
                             />
