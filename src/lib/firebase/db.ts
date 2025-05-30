@@ -82,7 +82,7 @@ import {
             newStatus: data.status,
             details: `Status updated from ${currentData.status} to ${data.status}`,
             performedBy,
-            performedAt: serverTimestamp() as Timestamp
+            performedAt: Timestamp.fromDate(new Date()) // Use Timestamp.fromDate instead of serverTimestamp
           };
           
           data.statusHistory = [...(currentData.statusHistory || []), historyEntry];

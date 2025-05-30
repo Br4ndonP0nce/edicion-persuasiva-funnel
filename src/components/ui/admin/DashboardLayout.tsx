@@ -19,6 +19,7 @@ import {
   UserCog,
   Shield,
   CheckCircle,
+  CreditCard,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -75,6 +76,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       href: "/admin/stats",
       icon: BarChart2,
       permission: "stats:read" as const,
+    },
+    {
+      name: "Ventas",
+      href: "/admin/ventas",
+      icon: CreditCard,
+      permission: "users:read" as const,
     },
     {
       name: "Contenido",

@@ -1,140 +1,155 @@
-// src/components/ui/admin/LeadTable.tsx - Updated with SaleModal integration
-
 import React, { useState } from "react";
-import { Lead, updateLead } from "@/lib/firebase/db";
 import { useAuth } from "@/hooks/useAuth";
-import { SaleModal } from "./SalesModal";
+import { Lead, updateLead } from "@/lib/firebase/db";
+import { getSaleByLeadId } from "@/lib/firebase/sales";
+import { Sale } from "@/types/sales";
+import SaleModal from "./SalesModal";
 import {
-  MoreHorizontal,
-  Check,
-  X,
-  RefreshCw,
-  Trash2,
-  Edit,
-  ExternalLink,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Eye,
+  MoreVertical,
   DollarSign,
+  CreditCard,
+  CheckCircle,
+  Clock,
+  XCircle,
+  User,
+  Edit2,
+  FileText,
 } from "lucide-react";
-import Link from "next/link";
 
-interface LeadTableProps {
+interface EnhancedLeadTableProps {
   leads: Lead[];
   onStatusChange: (leadId: string, newStatus: Lead["status"]) => void;
 }
 
-const LeadTable: React.FC<LeadTableProps> = ({ leads, onStatusChange }) => {
-  const { userProfile } = useAuth();
-  const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
-  const [editNotes, setEditNotes] = useState<{
-    id: string;
-    notes: string;
-  } | null>(null);
-
-  // Sale modal state
-  const [saleModalOpen, setSaleModalOpen] = useState(false);
+export default function EnhancedLeadTable({
+  leads,
+  onStatusChange,
+}: EnhancedLeadTableProps) {
+  const { hasPermission, userProfile } = useAuth();
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [showSaleModal, setShowSaleModal] = useState(false);
+  const [salesData, setSalesData] = useState<Record<string, Sale>>({});
+  const [loadingSales, setLoadingSales] = useState<Record<string, boolean>>({});
+  const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>(
+    {}
+  );
 
-  const getStatusBadge = (status: Lead["status"]) => {
-    const statusConfig = {
-      lead: { color: "bg-blue-100 text-blue-800", label: "Nuevo" },
-      onboarding: {
-        color: "bg-yellow-100 text-yellow-800",
-        label: "Onboarding",
-      },
-      sale: { color: "bg-green-100 text-green-800", label: "Venta" },
-      rejected: { color: "bg-red-100 text-red-800", label: "Rechazado" },
-    };
-
-    const config = statusConfig[status];
-    return (
-      <span
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}
-      >
-        {config.label}
-      </span>
-    );
-  };
-
-  const getInvestmentIndicator = (investment: string) => {
-    if (investment.includes("Sí, tengo acceso")) {
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-          Alto
-        </span>
-      );
-    } else if (investment.includes("puedo conseguirlo")) {
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-          Medio
-        </span>
-      );
-    } else {
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-          Bajo
-        </span>
-      );
-    }
-  };
-
+  // Handle actual database status updates
   const handleStatusChange = async (
     leadId: string,
     newStatus: Lead["status"]
   ) => {
-    try {
-      // If changing to sale status, show the sale modal first
-      if (newStatus === "sale") {
-        const lead = leads.find((l) => l.id === leadId);
-        if (lead) {
-          setSelectedLead(lead);
-          setSaleModalOpen(true);
-          setActionMenuOpen(null);
-          return; // Don't update status yet, wait for sale creation
-        }
-      }
+    if (!userProfile || updatingStatus[leadId]) return;
 
-      // For other status changes, update normally
-      await updateLead(leadId, { status: newStatus }, userProfile?.uid);
+    try {
+      setUpdatingStatus((prev) => ({ ...prev, [leadId]: true }));
+
+      // Update in database
+      await updateLead(leadId, { status: newStatus }, userProfile.uid);
+
+      // Update local state through parent component
       onStatusChange(leadId, newStatus);
-      setActionMenuOpen(null);
     } catch (error) {
       console.error("Error updating lead status:", error);
-      alert("Failed to update lead status");
+      // Could add toast notification here
+    } finally {
+      setUpdatingStatus((prev) => ({ ...prev, [leadId]: false }));
     }
   };
 
-  const handleSaleCreated = async () => {
-    if (selectedLead) {
-      // Update the lead status to "sale" after successful sale creation
-      await updateLead(selectedLead.id!, { status: "sale" }, userProfile?.uid);
-      onStatusChange(selectedLead.id!, "sale");
-      setSelectedLead(null);
-    }
-  };
+  // Load sale data for leads with sales
+  const loadSaleData = async (leadId: string) => {
+    if (salesData[leadId] || loadingSales[leadId]) return;
 
-  const handleNotesChange = async () => {
-    if (!editNotes) return;
-
+    setLoadingSales((prev) => ({ ...prev, [leadId]: true }));
     try {
-      await updateLead(
-        editNotes.id,
-        { notes: editNotes.notes },
-        userProfile?.uid
-      );
-      onStatusChange(editNotes.id, "lead"); // Just to trigger refresh
-      setEditNotes(null);
+      const sale = await getSaleByLeadId(leadId);
+      if (sale) {
+        setSalesData((prev) => ({ ...prev, [leadId]: sale }));
+      }
     } catch (error) {
-      console.error("Error updating notes:", error);
-      alert("Failed to update notes");
+      console.error("Error loading sale data:", error);
+    } finally {
+      setLoadingSales((prev) => ({ ...prev, [leadId]: false }));
+    }
+  };
+
+  React.useEffect(() => {
+    // Load sales data for leads with sale status
+    leads.forEach((lead) => {
+      if (lead.status === "sale" && lead.saleId) {
+        loadSaleData(lead.id!);
+      }
+    });
+  }, [leads]);
+
+  const getStatusColor = (status: Lead["status"]) => {
+    switch (status) {
+      case "lead":
+        return "bg-blue-100 text-blue-800";
+      case "onboarding":
+        return "bg-amber-100 text-amber-800";
+      case "sale":
+        return "bg-green-100 text-green-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getStatusIcon = (status: Lead["status"]) => {
+    switch (status) {
+      case "lead":
+        return <User className="h-3 w-3" />;
+      case "onboarding":
+        return <Clock className="h-3 w-3" />;
+      case "sale":
+        return <CheckCircle className="h-3 w-3" />;
+      case "rejected":
+        return <XCircle className="h-3 w-3" />;
+      default:
+        return <User className="h-3 w-3" />;
+    }
+  };
+
+  const getStatusLabel = (status: Lead["status"]) => {
+    switch (status) {
+      case "lead":
+        return "Nuevo Lead";
+      case "onboarding":
+        return "En Onboarding";
+      case "sale":
+        return "Venta";
+      case "rejected":
+        return "Rechazado";
+      default:
+        return status;
     }
   };
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return "N/A";
-
-    // Handle Firestore Timestamp - FIXED the seconds property error
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return new Intl.DateTimeFormat("es-MX", {
-      year: "numeric",
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -142,253 +157,354 @@ const LeadTable: React.FC<LeadTableProps> = ({ leads, onStatusChange }) => {
     }).format(date);
   };
 
+  const handleCreateSale = (lead: Lead) => {
+    // If lead already has a sale, don't create another one
+    if (lead.status === "sale" && lead.saleId) {
+      return;
+    }
+
+    setSelectedLead(lead);
+    setShowSaleModal(true);
+  };
+
+  const handleSaleCreated = () => {
+    // Refresh the leads data through parent component
+    // The parent should refetch the leads to get updated data
+    window.location.reload(); // Simple refresh - in production, the parent should handle this
+  };
+
+  const getSaleInfo = (lead: Lead) => {
+    if (lead.status !== "sale" || !lead.saleId) return null;
+    return salesData[lead.id!];
+  };
+
+  const getPaymentProgress = (sale: Sale) => {
+    return (sale.paidAmount / sale.totalAmount) * 100;
+  };
+
   return (
     <>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Nombre
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Contacto
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Nivel
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Inversión
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Estado
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Fecha
-              </th>
-              <th scope="col" className="relative px-6 py-3">
-                <span className="sr-only">Acciones</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {leads.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={7}
-                  className="px-6 py-4 text-center text-sm text-gray-500"
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Contacto</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Inversion/Ventas</TableHead>
+              <TableHead>Rol/Software</TableHead>
+              <TableHead>Creado</TableHead>
+              <TableHead>Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {leads.map((lead) => {
+              const sale = getSaleInfo(lead);
+              const isLoadingSale = loadingSales[lead.id!];
+
+              return (
+                <TableRow
+                  key={lead.id}
+                  className={`hover:bg-gray-50 ${
+                    updatingStatus[lead.id!] ? "opacity-50" : ""
+                  }`}
                 >
-                  No hay leads disponibles
-                </td>
-              </tr>
-            ) : (
-              leads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {lead.name}
-                    </div>
-                    {lead.notes && (
-                      <div className="text-xs text-gray-500 mt-1 max-w-xs truncate">
-                        {lead.notes}
-                      </div>
-                    )}
-                    {/* Show if lead has sale */}
-                    {lead.saleId && (
-                      <div className="text-xs text-green-600 mt-1 flex items-center">
-                        <DollarSign className="h-3 w-3 mr-1" />
-                        Venta registrada
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{lead.email}</div>
-                    <div className="text-xs text-gray-500">{lead.phone}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{lead.level}</div>
-                    <div className="text-xs text-gray-500">{lead.software}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getInvestmentIndicator(lead.investment)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(lead.status)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(lead.createdAt)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium relative">
-                    <button
-                      onClick={() =>
-                        setActionMenuOpen(
-                          actionMenuOpen === lead.id ? null : lead.id ?? null
-                        )
-                      }
-                      className="text-gray-400 hover:text-gray-500"
-                    >
-                      <MoreHorizontal className="h-5 w-5" />
-                    </button>
-
-                    {/* Action menu */}
-                    {actionMenuOpen === lead.id && (
-                      <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                        <div
-                          className="py-1"
-                          role="menu"
-                          aria-orientation="vertical"
-                        >
-                          {/* Status change options */}
-                          <button
-                            onClick={() => handleStatusChange(lead.id!, "lead")}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                          >
-                            <RefreshCw className="mr-2 h-4 w-4 text-blue-500" />{" "}
-                            Marcar como Lead
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleStatusChange(lead.id!, "onboarding")
-                            }
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                          >
-                            <RefreshCw className="mr-2 h-4 w-4 text-yellow-500" />{" "}
-                            Iniciar Onboarding
-                          </button>
-                          <button
-                            onClick={() => handleStatusChange(lead.id!, "sale")}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                          >
-                            <DollarSign className="mr-2 h-4 w-4 text-green-500" />{" "}
-                            Registrar Venta
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleStatusChange(lead.id!, "rejected")
-                            }
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                          >
-                            <X className="mr-2 h-4 w-4 text-red-500" /> Rechazar
-                          </button>
-
-                          <div className="border-t border-gray-100 my-1"></div>
-
-                          {/* Other actions */}
-                          <button
-                            onClick={() =>
-                              setEditNotes({
-                                id: lead.id!,
-                                notes: lead.notes || "",
-                              })
-                            }
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                          >
-                            <Edit className="mr-2 h-4 w-4 text-gray-500" />{" "}
-                            Editar Notas
-                          </button>
-                          <Link
-                            href={`/admin/leads/${lead.id}`}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                          >
-                            <ExternalLink className="mr-2 h-4 w-4 text-gray-500" />{" "}
-                            Ver Detalles
-                          </Link>
+                  <TableCell>
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-purple-100 text-purple-700 text-xs">
+                          {lead.name.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium text-sm">{lead.name}</div>
+                        <div className="text-xs text-gray-500">
+                          {lead.email}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {lead.phone}
                         </div>
                       </div>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                    </div>
+                  </TableCell>
 
-        {/* Edit notes modal */}
-        {editNotes && (
-          <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-              <div
-                className="fixed inset-0 transition-opacity"
-                onClick={() => setEditNotes(null)}
-              >
-                <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-              </div>
-              <span
-                className="hidden sm:inline-block sm:align-middle sm:h-screen"
-                aria-hidden="true"
-              >
-                &#8203;
-              </span>
-              <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                    Editar Notas
-                  </h3>
-                  <textarea
-                    rows={4}
-                    className="shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                    placeholder="Añadir notas sobre este lead..."
-                    value={editNotes.notes}
-                    onChange={(e) =>
-                      setEditNotes({ ...editNotes, notes: e.target.value })
-                    }
-                  ></textarea>
-                </div>
-                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                  <button
-                    type="button"
-                    onClick={handleNotesChange}
-                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm"
-                  >
-                    Guardar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditNotes(null)}
-                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+                  <TableCell>
+                    <Badge
+                      className={`${getStatusColor(
+                        lead.status
+                      )} flex items-center gap-1 w-fit`}
+                    >
+                      {getStatusIcon(lead.status)}
+                      {getStatusLabel(lead.status)}
+                    </Badge>
+                  </TableCell>
+
+                  <TableCell>
+                    <div className="space-y-2">
+                      {/* Investment Info (Lead Temperature) - Always Show */}
+                      <div className="space-y-1">
+                        <div className="text-xs text-gray-500">Inversión:</div>
+                        <div className="text-xs text-gray-600 max-w-xs truncate">
+                          {lead.investment}
+                        </div>
+                        <div
+                          className={`text-xs px-2 py-1 rounded-full font-medium ${
+                            lead.investment
+                              .toLowerCase()
+                              .includes("sí, tengo acceso") ||
+                            lead.investment
+                              .toLowerCase()
+                              .includes("tengo dinero")
+                              ? "bg-red-100 text-red-700" // Hot lead
+                              : lead.investment
+                                  .toLowerCase()
+                                  .includes("puedo conseguirlo")
+                              ? "bg-yellow-100 text-yellow-700" // Warm lead
+                              : "bg-blue-100 text-blue-700" // Cold lead
+                          }`}
+                        >
+                          {lead.investment
+                            .toLowerCase()
+                            .includes("sí, tengo acceso") ||
+                          lead.investment.toLowerCase().includes("tengo dinero")
+                            ? "🔥Alto"
+                            : lead.investment
+                                .toLowerCase()
+                                .includes("puedo conseguirlo")
+                            ? "🟡 Medio"
+                            : "❄️ Bajo"}
+                        </div>
+                      </div>
+
+                      {/* Sales Info - Only for sales */}
+                      {lead.status === "sale" && (
+                        <div className="border-t pt-2 space-y-1">
+                          {isLoadingSale ? (
+                            <div className="text-xs text-gray-500">
+                              Cargando venta...
+                            </div>
+                          ) : sale ? (
+                            <>
+                              <div className="text-sm font-medium">
+                                ${sale.totalAmount.toLocaleString()}
+                              </div>
+                              <div className="text-xs text-gray-600">
+                                Plan:{" "}
+                                {sale.paymentPlan
+                                  .replace("_", " ")
+                                  .toUpperCase()}
+                              </div>
+                              <div className="text-xs">
+                                <div className="flex justify-between items-center">
+                                  <span>
+                                    Pagado: ${sale.paidAmount.toLocaleString()}
+                                  </span>
+                                  <span className="text-green-600">
+                                    {getPaymentProgress(sale).toFixed(0)}%
+                                  </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                                  <div
+                                    className="bg-green-500 h-1 rounded-full"
+                                    style={{
+                                      width: `${Math.min(
+                                        getPaymentProgress(sale),
+                                        100
+                                      )}%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                              {sale.accessGranted && (
+                                <Badge className="bg-green-100 text-green-800 text-xs">
+                                  Acceso Otorgado
+                                </Badge>
+                              )}
+                            </>
+                          ) : (
+                            <div className="text-xs text-red-500">
+                              Error cargando venta
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+
+                  <TableCell>
+                    <div className="text-sm">
+                      <div className="font-medium">{lead.role}</div>
+                      <div className="text-xs text-gray-500">
+                        {lead.software}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Nivel: {lead.level}
+                      </div>
+                    </div>
+                  </TableCell>
+
+                  <TableCell>
+                    <div className="text-xs text-gray-500">
+                      {formatDate(lead.createdAt)}
+                    </div>
+                  </TableCell>
+
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {/* View Button */}
+                      <Button size="sm" variant="ghost" asChild>
+                        <a href={`/admin/leads/${lead.id}`}>
+                          <Eye className="h-4 w-4" />
+                        </a>
+                      </Button>
+
+                      {/* Actions Dropdown */}
+                      {hasPermission("leads:write") && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="ghost">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {/* Create Sale Option - Only for onboarding */}
+                            {lead.status === "onboarding" && (
+                              <DropdownMenuItem
+                                onClick={() => handleCreateSale(lead)}
+                                className="flex items-center"
+                              >
+                                <DollarSign className="mr-2 h-4 w-4 text-green-600" />
+                                Crear Venta
+                              </DropdownMenuItem>
+                            )}
+
+                            {/* Status Change Options - All possible transitions */}
+                            {lead.status !== "lead" && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleStatusChange(lead.id!, "lead")
+                                }
+                                className="flex items-center"
+                                disabled={updatingStatus[lead.id!]}
+                              >
+                                <User className="mr-2 h-4 w-4 text-blue-600" />
+                                {updatingStatus[lead.id!]
+                                  ? "Actualizando..."
+                                  : "Marcar como Lead"}
+                              </DropdownMenuItem>
+                            )}
+
+                            {lead.status !== "onboarding" && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleStatusChange(lead.id!, "onboarding")
+                                }
+                                className="flex items-center"
+                                disabled={updatingStatus[lead.id!]}
+                              >
+                                <Clock className="mr-2 h-4 w-4 text-amber-600" />
+                                {updatingStatus[lead.id!]
+                                  ? "Actualizando..."
+                                  : "Iniciar Onboarding"}
+                              </DropdownMenuItem>
+                            )}
+
+                            {lead.status !== "rejected" && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleStatusChange(lead.id!, "rejected")
+                                }
+                                className="flex items-center text-red-600"
+                                disabled={updatingStatus[lead.id!]}
+                              >
+                                <XCircle className="mr-2 h-4 w-4" />
+                                {updatingStatus[lead.id!]
+                                  ? "Actualizando..."
+                                  : "Rechazar"}
+                              </DropdownMenuItem>
+                            )}
+
+                            {/* Separator before utility options */}
+                            <div className="border-t my-1"></div>
+
+                            {/* Edit Notes */}
+                            <DropdownMenuItem asChild>
+                              <a
+                                href={`/admin/leads/${lead.id}`}
+                                className="flex items-center"
+                              >
+                                <Edit2 className="mr-2 h-4 w-4 text-gray-600" />
+                                Editar Notas
+                              </a>
+                            </DropdownMenuItem>
+
+                            {/* View Details */}
+                            <DropdownMenuItem asChild>
+                              <a
+                                href={`/admin/leads/${lead.id}`}
+                                className="flex items-center"
+                              >
+                                <FileText className="mr-2 h-4 w-4 text-gray-600" />
+                                Ver Detalles
+                              </a>
+                            </DropdownMenuItem>
+
+                            {/* View Sale Details - only show if there's sale data */}
+                            {lead.status === "sale" && sale && (
+                              <>
+                                <div className="border-t my-1"></div>
+                                <DropdownMenuItem asChild>
+                                  <a
+                                    href={`/admin/activos`}
+                                    className="flex items-center"
+                                  >
+                                    <CreditCard className="mr-2 h-4 w-4 text-purple-600" />
+                                    Ver en Activos
+                                  </a>
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
 
-      {/* Sale Modal */}
+      {/* Sale Creation Modal */}
       {selectedLead && (
         <SaleModal
-          isOpen={saleModalOpen}
+          isOpen={showSaleModal}
           onClose={() => {
-            setSaleModalOpen(false);
+            setShowSaleModal(false);
             setSelectedLead(null);
           }}
-          leadId={selectedLead.id!}
-          leadName={selectedLead.name}
-          onSaleCreated={handleSaleCreated}
+          lead={{
+            id: selectedLead.id!,
+            name: selectedLead.name,
+            email: selectedLead.email,
+            investment: selectedLead.investment,
+          }}
+          onSuccess={handleSaleCreated}
         />
+      )}
+
+      {/* Empty State */}
+      {leads.length === 0 && (
+        <div className="text-center py-12">
+          <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No hay leads
+          </h3>
+          <p className="text-gray-500">
+            Los leads aparecerán aquí una vez que se registren.
+          </p>
+        </div>
       )}
     </>
   );
-};
-
-export default LeadTable;
+}

@@ -1,537 +1,386 @@
-// src/components/ui/admin/SaleModal.tsx
-"use client";
-
 import React, { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { createSale } from "@/lib/firebase/sales";
+import { updateLead } from "@/lib/firebase/db";
 import { PAYMENT_PLANS } from "@/types/sales";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Upload, DollarSign, CreditCard } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { DollarSign, CreditCard, AlertCircle } from "lucide-react";
 
 interface SaleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  leadId: string;
-  leadName: string;
-  onSaleCreated: () => void;
+  lead: {
+    id: string;
+    name: string;
+    email: string;
+    investment: string;
+  };
+  onSuccess: () => void;
 }
 
-interface PaymentProofData {
-  amount: number;
-  imageFile: File | null;
-  description: string;
-}
-
-export const SaleModal: React.FC<SaleModalProps> = ({
+export default function SaleModal({
   isOpen,
   onClose,
-  leadId,
-  leadName,
-  onSaleCreated,
-}) => {
+  lead,
+  onSuccess,
+}: SaleModalProps) {
   const { userProfile } = useAuth();
-  const [step, setStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form data
-  const [product, setProduct] = useState<"acceso_curso" | "others">(
-    "acceso_curso"
-  );
-  const [paymentPlan, setPaymentPlan] = useState<
-    "1_pago" | "2_pagos" | "3_pagos"
-  >("1_pago"); // FIXED: Proper typing
-  const [customAmount, setCustomAmount] = useState<number>(0);
-  const [paymentProofs, setPaymentProofs] = useState<PaymentProofData[]>([
-    { amount: 0, imageFile: null, description: "" },
-  ]);
+  const [formData, setFormData] = useState<{
+    product: "acceso_curso" | "others";
+    paymentPlan: keyof typeof PAYMENT_PLANS;
+    customAmount: string;
+    initialPayment: string;
+    notes: string;
+  }>({
+    product: "acceso_curso",
+    paymentPlan: "1_pago",
+    customAmount: "",
+    initialPayment: "",
+    notes: "",
+  });
 
-  const resetForm = () => {
-    setStep(1);
-    setProduct("acceso_curso");
-    setPaymentPlan("1_pago");
-    setCustomAmount(0);
-    setPaymentProofs([{ amount: 0, imageFile: null, description: "" }]);
-    setError(null);
+  const getRecommendedPlan = () => {
+    const investment = lead.investment.toLowerCase();
+    if (
+      investment.includes("sí, tengo acceso") ||
+      investment.includes("tengo dinero")
+    ) {
+      return "1_pago";
+    } else if (investment.includes("puedo conseguirlo")) {
+      return "2_pagos";
+    } else {
+      return "3_pagos";
+    }
   };
 
-  const handleClose = () => {
-    resetForm();
-    onClose();
-  };
+  React.useEffect(() => {
+    if (isOpen) {
+      const recommended = getRecommendedPlan();
+      setFormData({
+        product: "acceso_curso",
+        paymentPlan: recommended as keyof typeof PAYMENT_PLANS,
+        customAmount: "",
+        initialPayment: "",
+        notes: "",
+      });
+      setError(null);
+    }
+  }, [isOpen, lead.investment]);
 
   const getTotalAmount = () => {
-    if (product === "others") return customAmount;
-    return PAYMENT_PLANS[paymentPlan].amount;
+    if (formData.customAmount) {
+      return parseFloat(formData.customAmount) || 0;
+    }
+    return PAYMENT_PLANS[formData.paymentPlan].amount;
   };
 
-  const getMinimumPaymentRequired = () => {
-    const total = getTotalAmount();
-    return Math.ceil(total * 0.5); // At least 50%
-  };
+  const getInitialPayment = () => {
+    if (formData.initialPayment) {
+      return parseFloat(formData.initialPayment) || 0;
+    }
 
-  const getTotalPaymentAmount = () => {
-    return paymentProofs.reduce((sum, proof) => sum + (proof.amount || 0), 0);
-  };
+    const totalAmount = getTotalAmount();
+    const plan = PAYMENT_PLANS[formData.paymentPlan];
 
-  const addPaymentProof = () => {
-    setPaymentProofs([
-      ...paymentProofs,
-      { amount: 0, imageFile: null, description: "" },
-    ]);
-  };
-
-  const removePaymentProof = (index: number) => {
-    if (paymentProofs.length > 1) {
-      setPaymentProofs(paymentProofs.filter((_, i) => i !== index));
+    // Default initial payment based on plan
+    switch (formData.paymentPlan) {
+      case "1_pago":
+        return totalAmount;
+      case "2_pagos":
+        return Math.round(totalAmount / 2);
+      case "3_pagos":
+        return Math.round(totalAmount / 3);
+      default:
+        return 0;
     }
   };
 
-  const updatePaymentProof = (
-    index: number,
-    field: keyof PaymentProofData,
-    value: any
-  ) => {
-    const updated = [...paymentProofs];
-    updated[index] = { ...updated[index], [field]: value };
-    setPaymentProofs(updated);
-  };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const handleFileUpload = async (file: File): Promise<string> => {
-    // In a real implementation, you'd upload to Firebase Storage or similar
-    // For now, we'll simulate with a placeholder
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(`/uploads/payment_proof_${Date.now()}_${file.name}`);
-      }, 1000);
-    });
-  };
-
-  const validateStep1 = () => {
-    if (product === "others" && customAmount <= 0) {
-      setError("Please enter a valid amount for custom product");
-      return false;
-    }
-    return true;
-  };
-
-  const validateStep2 = () => {
-    const totalPayment = getTotalPaymentAmount();
-    const minimumRequired = getMinimumPaymentRequired();
-
-    if (totalPayment < minimumRequired) {
-      setError(`Minimum payment required: $${minimumRequired} (50% of total)`);
-      return false;
+    if (!userProfile) {
+      setError("Usuario no autenticado");
+      return;
     }
 
-    // Check that all proofs have files
-    const hasAllFiles = paymentProofs.every(
-      (proof) => proof.imageFile !== null && proof.amount > 0
-    );
-    if (!hasAllFiles) {
-      setError("Please provide amount and upload proof image for all payments");
-      return false;
+    const totalAmount = getTotalAmount();
+    const initialPayment = getInitialPayment();
+
+    if (totalAmount <= 0) {
+      setError("El monto total debe ser mayor a 0");
+      return;
     }
 
-    return true;
-  };
-
-  const handleNext = () => {
-    setError(null);
-    if (step === 1 && validateStep1()) {
-      setStep(2);
+    if (initialPayment > totalAmount) {
+      setError("El pago inicial no puede ser mayor al monto total");
+      return;
     }
-  };
-
-  const handleSubmit = async () => {
-    if (!validateStep2() || !userProfile) return;
-
-    setIsLoading(true);
-    setError(null);
 
     try {
-      // Upload payment proof images
-      const uploadedProofs = await Promise.all(
-        paymentProofs.map(async (proof) => {
-          if (!proof.imageFile) throw new Error("Missing payment proof file");
+      setLoading(true);
+      setError(null);
 
-          const imageUrl = await handleFileUpload(proof.imageFile);
-          return {
-            amount: proof.amount,
-            imageUrl,
-            description: proof.description,
-            uploadedBy: userProfile.uid,
-          };
-        })
-      );
-
-      const totalPaid = uploadedProofs.reduce(
-        (sum, proof) => sum + proof.amount,
-        0
-      );
-
-      // Create sale - FIXED: Proper payment plan typing
+      // Create the sale
       const saleData = {
-        leadId,
+        leadId: lead.id,
         saleUserId: userProfile.uid,
-        product,
-        paymentPlan: product === "others" ? ("custom" as const) : paymentPlan,
-        totalAmount: getTotalAmount(),
-        paidAmount: totalPaid,
-        paymentProofs: uploadedProofs.map((proof, index) => ({
-          id: `proof_${Date.now()}_${index}`,
-          ...proof,
-          uploadedAt: new Date(),
-        })),
+        product: formData.product,
+        paymentPlan: formData.paymentPlan,
+        totalAmount,
+        paidAmount: initialPayment,
+        paymentProofs:
+          initialPayment > 0
+            ? [
+                {
+                  id: `initial_${Date.now()}`,
+                  amount: initialPayment,
+                  imageUrl: "", // Will be updated when proof is uploaded
+                  uploadedAt: new Date(),
+                  uploadedBy: userProfile.uid,
+                  description:
+                    "Pago inicial registrado en la creación de la venta",
+                },
+              ]
+            : [],
         accessGranted: false,
         accessStartDate: null,
         accessEndDate: null,
         exemptionGranted: false,
       };
 
-      await createSale(saleData);
-      onSaleCreated();
-      handleClose();
+      const saleId = await createSale(saleData);
+
+      // Update lead status to 'sale'
+      await updateLead(
+        lead.id,
+        {
+          status: "sale",
+          saleId,
+        },
+        userProfile.uid
+      );
+
+      onSuccess();
+      onClose();
     } catch (err) {
       console.error("Error creating sale:", err);
-      setError(err instanceof Error ? err.message : "Failed to create sale");
+      setError(err instanceof Error ? err.message : "Error al crear la venta");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  if (!isOpen) return null;
+  const getInvestmentRecommendation = () => {
+    const investment = lead.investment.toLowerCase();
+    if (
+      investment.includes("sí, tengo acceso") ||
+      investment.includes("tengo dinero")
+    ) {
+      return {
+        type: "success",
+        message:
+          "Cliente tiene acceso inmediato al dinero - Recomendado: 1 pago",
+        plan: "1_pago",
+      };
+    } else if (investment.includes("puedo conseguirlo")) {
+      return {
+        type: "warning",
+        message: "Cliente puede conseguir el dinero - Recomendado: 2 pagos",
+        plan: "2_pagos",
+      };
+    } else {
+      return {
+        type: "info",
+        message: "Cliente necesita tiempo - Recomendado: 3 pagos",
+        plan: "3_pagos",
+      };
+    }
+  };
+
+  const recommendation = getInvestmentRecommendation();
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center">
+            <DollarSign className="mr-2 h-5 w-5 text-green-600" />
+            Crear Venta
+          </DialogTitle>
+          <DialogDescription>
+            Convertir lead a venta para {lead.name}
+          </DialogDescription>
+        </DialogHeader>
+
+        {error && (
+          <div className="bg-red-100 text-red-700 p-3 rounded-md flex items-center text-sm">
+            <AlertCircle className="mr-2 h-4 w-4" />
+            {error}
+          </div>
+        )}
+
+        {/* Investment Analysis */}
+        <div
+          className={`p-3 rounded-md text-sm ${
+            recommendation.type === "success"
+              ? "bg-green-50 text-green-800"
+              : recommendation.type === "warning"
+              ? "bg-yellow-50 text-yellow-800"
+              : "bg-blue-50 text-blue-800"
+          }`}
         >
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-xl">
-                Create Sale - {leadName}
-              </CardTitle>
-              <Button variant="ghost" size="sm" onClick={handleClose}>
-                <X className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Progress indicator */}
-              <div className="flex items-center space-x-4">
-                <div
-                  className={`flex items-center ${
-                    step >= 1 ? "text-blue-600" : "text-gray-400"
-                  }`}
-                >
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                      step >= 1
-                        ? "border-blue-600 bg-blue-600 text-white"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    1
-                  </div>
-                  <span className="ml-2">Product & Payment</span>
-                </div>
-                <div className="flex-1 h-0.5 bg-gray-200">
-                  <div
-                    className={`h-full transition-all duration-300 ${
-                      step >= 2 ? "bg-blue-600 w-full" : "bg-gray-200 w-0"
-                    }`}
-                  />
-                </div>
-                <div
-                  className={`flex items-center ${
-                    step >= 2 ? "text-blue-600" : "text-gray-400"
-                  }`}
-                >
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                      step >= 2
-                        ? "border-blue-600 bg-blue-600 text-white"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    2
-                  </div>
-                  <span className="ml-2">Payment Proof</span>
-                </div>
-              </div>
+          <p className="font-medium">Análisis de Inversión:</p>
+          <p>"{lead.investment}"</p>
+          <p className="mt-1 font-medium">{recommendation.message}</p>
+        </div>
 
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-                  {error}
-                </div>
-              )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Product Selection */}
+          <div>
+            <Label htmlFor="product">Producto</Label>
+            <Select
+              value={formData.product}
+              onValueChange={(value) =>
+                setFormData({
+                  ...formData,
+                  product: value as "acceso_curso" | "others",
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="acceso_curso">
+                  Acceso al Curso (120 días)
+                </SelectItem>
+                <SelectItem value="others">Otro Producto</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-              {/* Step 1: Product Selection */}
-              {step === 1 && (
-                <div className="space-y-6">
-                  <div>
-                    <Label htmlFor="product">Product</Label>
-                    <select
-                      id="product"
-                      value={product}
-                      onChange={(e) =>
-                        setProduct(e.target.value as "acceso_curso" | "others")
-                      }
-                      className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="acceso_curso">Acceso a Curso</option>
-                      <option value="others">Others</option>
-                    </select>
-                  </div>
-
-                  {product === "acceso_curso" && (
-                    <div>
-                      <Label htmlFor="paymentPlan">Payment Plan</Label>
-                      <div className="grid grid-cols-1 gap-3 mt-2">
-                        {Object.entries(PAYMENT_PLANS).map(([key, plan]) => (
-                          <label
-                            key={key}
-                            className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                              paymentPlan === key
-                                ? "border-blue-500 bg-blue-50"
-                                : "border-gray-200 hover:border-gray-300"
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="paymentPlan"
-                              value={key}
-                              checked={paymentPlan === key}
-                              onChange={(e) =>
-                                setPaymentPlan(
-                                  e.target.value as
-                                    | "1_pago"
-                                    | "2_pagos"
-                                    | "3_pagos"
-                                )
-                              }
-                              className="mr-3"
-                            />
-                            <div className="flex items-center">
-                              <DollarSign className="h-5 w-5 text-green-600 mr-2" />
-                              <div>
-                                <div className="font-medium">{plan.label}</div>
-                                <div className="text-sm text-gray-500">
-                                  {plan.payments} payment
-                                  {plan.payments > 1 ? "s" : ""}
-                                </div>
-                              </div>
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {product === "others" && (
-                    <div>
-                      <Label htmlFor="customAmount">Custom Amount ($)</Label>
-                      <Input
-                        id="customAmount"
-                        type="number"
-                        value={customAmount}
-                        onChange={(e) =>
-                          setCustomAmount(Number(e.target.value))
-                        }
-                        placeholder="Enter amount"
-                        className="mt-1"
-                      />
-                    </div>
-                  )}
-
-                  <div className="bg-blue-50 p-4 rounded-md">
-                    <div className="flex items-center text-blue-800">
-                      <CreditCard className="h-5 w-5 mr-2" />
-                      <div>
-                        <div className="font-medium">
-                          Total Amount: ${getTotalAmount()}
-                        </div>
-                        <div className="text-sm">
-                          Minimum payment required: $
-                          {getMinimumPaymentRequired()} (50%)
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 2: Payment Proofs */}
-              {step === 2 && (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Payment Proofs</h3>
-                    <div className="space-y-4">
-                      {paymentProofs.map((proof, index) => (
-                        <div
-                          key={index}
-                          className="border border-gray-200 rounded-lg p-4"
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="font-medium">Payment {index + 1}</h4>
-                            {paymentProofs.length > 1 && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removePaymentProof(index)}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor={`amount-${index}`}>
-                                Amount ($)
-                              </Label>
-                              <Input
-                                id={`amount-${index}`}
-                                type="number"
-                                value={proof.amount || ""}
-                                onChange={(e) =>
-                                  updatePaymentProof(
-                                    index,
-                                    "amount",
-                                    Number(e.target.value)
-                                  )
-                                }
-                                placeholder="0"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor={`description-${index}`}>
-                                Description (Optional)
-                              </Label>
-                              <Input
-                                id={`description-${index}`}
-                                value={proof.description}
-                                onChange={(e) =>
-                                  updatePaymentProof(
-                                    index,
-                                    "description",
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="e.g., First payment"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="mt-4">
-                            <Label htmlFor={`file-${index}`}>
-                              Payment Proof Image
-                            </Label>
-                            <div className="mt-2 flex items-center space-x-4">
-                              <input
-                                id={`file-${index}`}
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0] || null;
-                                  updatePaymentProof(index, "imageFile", file);
-                                }}
-                                className="hidden"
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() =>
-                                  document
-                                    .getElementById(`file-${index}`)
-                                    ?.click()
-                                }
-                                className="flex items-center"
-                              >
-                                <Upload className="h-4 w-4 mr-2" />
-                                {proof.imageFile
-                                  ? "Change Image"
-                                  : "Upload Image"}
-                              </Button>
-                              {proof.imageFile && (
-                                <span className="text-sm text-green-600">
-                                  ✓ {proof.imageFile.name}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      onClick={addPaymentProof}
-                      className="w-full mt-4"
-                    >
-                      Add Another Payment Proof
-                    </Button>
-                  </div>
-
-                  <div className="bg-green-50 p-4 rounded-md">
-                    <div className="flex items-center justify-between text-green-800">
-                      <div>
-                        <div className="font-medium">
-                          Total Payments: ${getTotalPaymentAmount()}
-                        </div>
-                        <div className="text-sm">
-                          Required: ${getMinimumPaymentRequired()} | Total Sale:
-                          ${getTotalAmount()}
-                        </div>
-                      </div>
-                      {getTotalPaymentAmount() >=
-                        getMinimumPaymentRequired() && (
-                        <div className="text-green-600">✓ Minimum Met</div>
+          {/* Payment Plan */}
+          <div>
+            <Label htmlFor="paymentPlan">Plan de Pago</Label>
+            <Select
+              value={formData.paymentPlan}
+              onValueChange={(value) =>
+                setFormData({
+                  ...formData,
+                  paymentPlan: value as keyof typeof PAYMENT_PLANS,
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(PAYMENT_PLANS).map(([key, plan]) => (
+                  <SelectItem key={key} value={key}>
+                    <div className="flex items-center justify-between w-full">
+                      <span>{plan.label}</span>
+                      {key === recommendation.plan && (
+                        <span className="ml-2 text-xs bg-green-100 text-green-600 px-1 rounded">
+                          Recomendado
+                        </span>
                       )}
                     </div>
-                  </div>
-                </div>
-              )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-              {/* Action buttons */}
-              <div className="flex justify-between pt-6 border-t">
-                <div>
-                  {step === 2 && (
-                    <Button variant="outline" onClick={() => setStep(1)}>
-                      Back
-                    </Button>
-                  )}
-                </div>
-                <div className="flex space-x-2">
-                  <Button variant="outline" onClick={handleClose}>
-                    Cancel
-                  </Button>
-                  {step === 1 ? (
-                    <Button onClick={handleNext}>Next</Button>
-                  ) : (
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={isLoading}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      {isLoading ? "Creating Sale..." : "Create Sale"}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+          {/* Custom Amount */}
+          <div>
+            <Label htmlFor="customAmount">Monto Personalizado (opcional)</Label>
+            <Input
+              id="customAmount"
+              type="number"
+              placeholder={`Predeterminado: $${
+                PAYMENT_PLANS[formData.paymentPlan].amount
+              }`}
+              value={formData.customAmount}
+              onChange={(e) =>
+                setFormData({ ...formData, customAmount: e.target.value })
+              }
+              min="0"
+              step="0.01"
+            />
+          </div>
+
+          {/* Initial Payment */}
+          <div>
+            <Label htmlFor="initialPayment">Pago Inicial</Label>
+            <Input
+              id="initialPayment"
+              type="number"
+              placeholder={`Sugerido: $${getInitialPayment()}`}
+              value={formData.initialPayment}
+              onChange={(e) =>
+                setFormData({ ...formData, initialPayment: e.target.value })
+              }
+              min="0"
+              max={getTotalAmount()}
+              step="0.01"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Monto total: ${getTotalAmount().toLocaleString()}
+            </p>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <Label htmlFor="notes">Notas (opcional)</Label>
+            <Textarea
+              id="notes"
+              placeholder="Detalles adicionales sobre la venta..."
+              value={formData.notes}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+              rows={3}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? (
+                <>Creando...</>
+              ) : (
+                <>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Crear Venta
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
-};
+}
