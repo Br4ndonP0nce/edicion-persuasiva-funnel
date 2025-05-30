@@ -34,7 +34,7 @@ export interface PaymentProof {
   
   export interface SaleStatusHistory {
     id: string;
-    action: 'sale_created' | 'payment_added' | 'access_granted' | 'access_revoked' | 'exemption_granted';
+    action: 'sale_created' | 'payment_added' | 'access_granted' | 'access_updated' | 'access_revoked' | 'exemption_granted';
     details: string;
     amount?: number;
     performedBy: string; // uid of user who performed action

@@ -20,6 +20,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Eye,
@@ -32,6 +33,7 @@ import {
   User,
   Edit2,
   FileText,
+  Lock,
 } from "lucide-react";
 
 interface EnhancedLeadTableProps {
@@ -182,6 +184,40 @@ export default function EnhancedLeadTable({
     return (sale.paidAmount / sale.totalAmount) * 100;
   };
 
+  /**
+   * Determine which status transitions are allowed based on current status
+   */
+  const getAllowedStatusTransitions = (
+    currentStatus: Lead["status"]
+  ): Lead["status"][] => {
+    switch (currentStatus) {
+      case "lead":
+        return ["onboarding", "rejected"];
+      case "onboarding":
+        return ["lead", "rejected"]; // sale transition happens via "Create Sale" button
+      case "sale":
+        return []; // NO status changes allowed once it's a sale
+      case "rejected":
+        return ["lead", "onboarding"];
+      default:
+        return [];
+    }
+  };
+
+  /**
+   * Check if any status changes are allowed for this lead
+   */
+  const canChangeStatus = (lead: Lead): boolean => {
+    // No status changes allowed for sales
+    if (lead.status === "sale") return false;
+
+    // Check if user has permission
+    if (!hasPermission("leads:write")) return false;
+
+    // Check if there are any allowed transitions
+    return getAllowedStatusTransitions(lead.status).length > 0;
+  };
+
   return (
     <>
       <div className="overflow-x-auto">
@@ -200,6 +236,9 @@ export default function EnhancedLeadTable({
             {leads.map((lead) => {
               const sale = getSaleInfo(lead);
               const isLoadingSale = loadingSales[lead.id!];
+              const allowedTransitions = getAllowedStatusTransitions(
+                lead.status
+              );
 
               return (
                 <TableRow
@@ -228,14 +267,20 @@ export default function EnhancedLeadTable({
                   </TableCell>
 
                   <TableCell>
-                    <Badge
-                      className={`${getStatusColor(
-                        lead.status
-                      )} flex items-center gap-1 w-fit`}
-                    >
-                      {getStatusIcon(lead.status)}
-                      {getStatusLabel(lead.status)}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        className={`${getStatusColor(
+                          lead.status
+                        )} flex items-center gap-1 w-fit`}
+                      >
+                        {getStatusIcon(lead.status)}
+                        {getStatusLabel(lead.status)}
+                      </Badge>
+                      {/* Show lock icon for sales to indicate no changes allowed */}
+                      {lead.status === "sale" && (
+                        <Lock className="h-3 w-3 text-gray-400" />
+                      )}
+                    </div>
                   </TableCell>
 
                   <TableCell>
@@ -368,63 +413,94 @@ export default function EnhancedLeadTable({
                           <DropdownMenuContent align="end">
                             {/* Create Sale Option - Only for onboarding */}
                             {lead.status === "onboarding" && (
-                              <DropdownMenuItem
-                                onClick={() => handleCreateSale(lead)}
-                                className="flex items-center"
-                              >
-                                <DollarSign className="mr-2 h-4 w-4 text-green-600" />
-                                Crear Venta
-                              </DropdownMenuItem>
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => handleCreateSale(lead)}
+                                  className="flex items-center"
+                                >
+                                  <DollarSign className="mr-2 h-4 w-4 text-green-600" />
+                                  Crear Venta
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                              </>
                             )}
 
-                            {/* Status Change Options - All possible transitions */}
-                            {lead.status !== "lead" && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleStatusChange(lead.id!, "lead")
-                                }
-                                className="flex items-center"
-                                disabled={updatingStatus[lead.id!]}
-                              >
-                                <User className="mr-2 h-4 w-4 text-blue-600" />
-                                {updatingStatus[lead.id!]
-                                  ? "Actualizando..."
-                                  : "Marcar como Lead"}
-                              </DropdownMenuItem>
-                            )}
+                            {/* Status Change Options - Only if transitions are allowed */}
+                            {canChangeStatus(lead) &&
+                              allowedTransitions.length > 0 && (
+                                <>
+                                  {allowedTransitions.map((targetStatus) => {
+                                    const getStatusActionData = (
+                                      status: Lead["status"]
+                                    ) => {
+                                      switch (status) {
+                                        case "lead":
+                                          return {
+                                            icon: User,
+                                            label: "Marcar como Lead",
+                                            color: "text-blue-600",
+                                          };
+                                        case "onboarding":
+                                          return {
+                                            icon: Clock,
+                                            label: "Iniciar Onboarding",
+                                            color: "text-amber-600",
+                                          };
+                                        case "rejected":
+                                          return {
+                                            icon: XCircle,
+                                            label: "Rechazar",
+                                            color: "text-red-600",
+                                          };
+                                        default:
+                                          return {
+                                            icon: User,
+                                            label: status,
+                                            color: "text-gray-600",
+                                          };
+                                      }
+                                    };
 
-                            {lead.status !== "onboarding" && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleStatusChange(lead.id!, "onboarding")
-                                }
-                                className="flex items-center"
-                                disabled={updatingStatus[lead.id!]}
-                              >
-                                <Clock className="mr-2 h-4 w-4 text-amber-600" />
-                                {updatingStatus[lead.id!]
-                                  ? "Actualizando..."
-                                  : "Iniciar Onboarding"}
-                              </DropdownMenuItem>
-                            )}
+                                    const actionData =
+                                      getStatusActionData(targetStatus);
+                                    const IconComponent = actionData.icon;
 
-                            {lead.status !== "rejected" && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleStatusChange(lead.id!, "rejected")
-                                }
-                                className="flex items-center text-red-600"
-                                disabled={updatingStatus[lead.id!]}
-                              >
-                                <XCircle className="mr-2 h-4 w-4" />
-                                {updatingStatus[lead.id!]
-                                  ? "Actualizando..."
-                                  : "Rechazar"}
-                              </DropdownMenuItem>
-                            )}
+                                    return (
+                                      <DropdownMenuItem
+                                        key={targetStatus}
+                                        onClick={() =>
+                                          handleStatusChange(
+                                            lead.id!,
+                                            targetStatus
+                                          )
+                                        }
+                                        className={`flex items-center ${actionData.color}`}
+                                        disabled={updatingStatus[lead.id!]}
+                                      >
+                                        <IconComponent className="mr-2 h-4 w-4" />
+                                        {updatingStatus[lead.id!]
+                                          ? "Actualizando..."
+                                          : actionData.label}
+                                      </DropdownMenuItem>
+                                    );
+                                  })}
+                                  <DropdownMenuSeparator />
+                                </>
+                              )}
 
-                            {/* Separator before utility options */}
-                            <div className="border-t my-1"></div>
+                            {/* Sale is locked - show info */}
+                            {lead.status === "sale" && (
+                              <>
+                                <DropdownMenuItem
+                                  disabled
+                                  className="flex items-center text-gray-500"
+                                >
+                                  <Lock className="mr-2 h-4 w-4" />
+                                  Estado bloqueado (venta)
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                              </>
+                            )}
 
                             {/* Edit Notes */}
                             <DropdownMenuItem asChild>
@@ -451,7 +527,7 @@ export default function EnhancedLeadTable({
                             {/* View Sale Details - only show if there's sale data */}
                             {lead.status === "sale" && sale && (
                               <>
-                                <div className="border-t my-1"></div>
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem asChild>
                                   <a
                                     href={`/admin/activos`}

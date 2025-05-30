@@ -7,9 +7,12 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   getActiveMembers,
   grantCourseAccess,
+  updateCourseAccess,
+  revokeCourseAccess,
   addPaymentProof,
 } from "@/lib/firebase/sales";
 import { Sale, PaymentProof } from "@/types/sales";
+import { toJsDate } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +35,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import {
   Users,
@@ -47,6 +61,9 @@ import {
   CreditCard,
   Upload,
   Plus,
+  Edit3,
+  UserMinus,
+  Shield,
 } from "lucide-react";
 
 interface ActiveMember extends Sale {
@@ -68,13 +85,32 @@ export default function ActivosPage() {
   const [filterStatus, setFilterStatus] = useState<
     "all" | "active" | "pending" | "expired"
   >("all");
+
+  // Grant Access Modal State
   const [grantingAccess, setGrantingAccess] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<ActiveMember | null>(
-    null
-  );
+  const [selectedMemberForGrant, setSelectedMemberForGrant] =
+    useState<ActiveMember | null>(null);
   const [accessStartDate, setAccessStartDate] = useState("");
+
+  // Update Access Modal State
+  const [updatingAccess, setUpdatingAccess] = useState(false);
+  const [selectedMemberForUpdate, setSelectedMemberForUpdate] =
+    useState<ActiveMember | null>(null);
+  const [newAccessStartDate, setNewAccessStartDate] = useState("");
+  const [showUpdateAccessModal, setShowUpdateAccessModal] = useState(false);
+
+  // Revoke Access State
+  const [revokingAccess, setRevokingAccess] = useState(false);
+  const [selectedMemberForRevoke, setSelectedMemberForRevoke] =
+    useState<ActiveMember | null>(null);
+  const [revokeReason, setRevokeReason] = useState("");
+  const [showRevokeDialog, setShowRevokeDialog] = useState(false);
+
+  // Payment Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [addingPayment, setAddingPayment] = useState(false);
+  const [selectedMemberForPayment, setSelectedMemberForPayment] =
+    useState<ActiveMember | null>(null);
   const [paymentForm, setPaymentForm] = useState({
     amount: "",
     imageUrl: "",
@@ -99,22 +135,75 @@ export default function ActivosPage() {
   };
 
   const handleGrantAccess = async () => {
-    if (!selectedMember || !accessStartDate || !userProfile) return;
+    if (!selectedMemberForGrant || !accessStartDate || !userProfile) return;
 
     try {
       setGrantingAccess(true);
       const startDate = new Date(accessStartDate);
-      await grantCourseAccess(selectedMember.id!, startDate, userProfile.uid);
+      await grantCourseAccess(
+        selectedMemberForGrant.id!,
+        startDate,
+        userProfile.uid
+      );
 
       // Refresh the data
       await fetchActiveMembers();
-      setSelectedMember(null);
+      setSelectedMemberForGrant(null);
       setAccessStartDate("");
     } catch (err) {
       console.error("Error granting access:", err);
       setError("Failed to grant course access");
     } finally {
       setGrantingAccess(false);
+    }
+  };
+
+  const handleUpdateAccess = async () => {
+    if (!selectedMemberForUpdate || !newAccessStartDate || !userProfile) return;
+
+    try {
+      setUpdatingAccess(true);
+      const startDate = new Date(newAccessStartDate);
+      await updateCourseAccess(
+        selectedMemberForUpdate.id!,
+        startDate,
+        userProfile.uid
+      );
+
+      // Refresh the data
+      await fetchActiveMembers();
+      setSelectedMemberForUpdate(null);
+      setNewAccessStartDate("");
+      setShowUpdateAccessModal(false);
+    } catch (err) {
+      console.error("Error updating access:", err);
+      setError("Failed to update course access");
+    } finally {
+      setUpdatingAccess(false);
+    }
+  };
+
+  const handleRevokeAccess = async () => {
+    if (!selectedMemberForRevoke || !userProfile) return;
+
+    try {
+      setRevokingAccess(true);
+      await revokeCourseAccess(
+        selectedMemberForRevoke.id!,
+        userProfile.uid,
+        revokeReason || undefined
+      );
+
+      // Refresh the data
+      await fetchActiveMembers();
+      setSelectedMemberForRevoke(null);
+      setRevokeReason("");
+      setShowRevokeDialog(false);
+    } catch (err) {
+      console.error("Error revoking access:", err);
+      setError("Failed to revoke course access");
+    } finally {
+      setRevokingAccess(false);
     }
   };
 
@@ -134,11 +223,15 @@ export default function ActivosPage() {
     return false;
   };
 
+  const canManageAccess = () => {
+    return hasPermission("active_members:write");
+  };
+
   const handleAddPayment = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (
-      !selectedMember ||
+      !selectedMemberForPayment ||
       !userProfile ||
       !paymentForm.amount ||
       !paymentForm.imageUrl
@@ -156,7 +249,11 @@ export default function ActivosPage() {
         description: paymentForm.description,
       };
 
-      await addPaymentProof(selectedMember.id!, paymentProof, userProfile.uid);
+      await addPaymentProof(
+        selectedMemberForPayment.id!,
+        paymentProof,
+        userProfile.uid
+      );
 
       // Refresh the data
       await fetchActiveMembers();
@@ -164,7 +261,7 @@ export default function ActivosPage() {
       // Reset form and close modal
       setPaymentForm({ amount: "", imageUrl: "", description: "" });
       setShowPaymentModal(false);
-      setSelectedMember(null);
+      setSelectedMemberForPayment(null);
     } catch (error) {
       console.error("Error adding payment:", error);
       setError("Failed to add payment");
@@ -189,28 +286,9 @@ export default function ActivosPage() {
     if (!member.accessEndDate) return 0;
 
     const now = new Date();
-    let endDate: Date;
+    const endDate = toJsDate(member.accessEndDate);
 
-    // Handle different date formats
-    if (
-      typeof member.accessEndDate === "object" &&
-      member.accessEndDate !== null &&
-      "toDate" in member.accessEndDate
-    ) {
-      // Firestore Timestamp
-      endDate = (member.accessEndDate as any).toDate();
-    } else if (member.accessEndDate instanceof Date) {
-      // JavaScript Date
-      endDate = member.accessEndDate;
-    } else {
-      // String or number timestamp
-      endDate = new Date(member.accessEndDate as any);
-    }
-
-    // Validate the date
-    if (isNaN(endDate.getTime())) {
-      return 0;
-    }
+    if (!endDate) return 0;
 
     const diffTime = endDate.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -233,25 +311,8 @@ export default function ActivosPage() {
   };
 
   const formatDate = (date: any): string => {
-    if (!date) return "N/A";
-
-    let jsDate: Date;
-
-    if (typeof date === "object" && date !== null && "toDate" in date) {
-      // Firestore Timestamp
-      jsDate = date.toDate();
-    } else if (date instanceof Date) {
-      // JavaScript Date
-      jsDate = date;
-    } else {
-      // String or number timestamp
-      jsDate = new Date(date);
-    }
-
-    // Validate the date
-    if (isNaN(jsDate.getTime())) {
-      return "Invalid Date";
-    }
+    const jsDate = toJsDate(date);
+    if (!jsDate) return "N/A";
 
     return jsDate.toLocaleDateString("es-MX", {
       year: "numeric",
@@ -315,6 +376,14 @@ export default function ActivosPage() {
           <div className="bg-red-100 text-red-700 p-4 rounded-md mb-6 flex items-center">
             <AlertCircle className="mr-2 h-4 w-4" />
             {error}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setError(null)}
+              className="ml-auto"
+            >
+              ×
+            </Button>
           </div>
         )}
 
@@ -500,7 +569,7 @@ export default function ActivosPage() {
                         </TableCell>
 
                         <TableCell>
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 flex-wrap">
                             {/* Add Payment Button - for users with payment edit permissions */}
                             {canEditPayments(member) &&
                               getRemainingAmount(member) > 0 && (
@@ -508,7 +577,7 @@ export default function ActivosPage() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => {
-                                    setSelectedMember(member);
+                                    setSelectedMemberForPayment(member);
                                     setShowPaymentModal(true);
                                   }}
                                 >
@@ -517,74 +586,116 @@ export default function ActivosPage() {
                                 </Button>
                               )}
 
-                            {/* Grant Access Button */}
-                            {!member.accessGranted &&
-                              hasPermission("active_members:write") && (
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      onClick={() => setSelectedMember(member)}
-                                      className="bg-green-600 hover:bg-green-700"
-                                    >
-                                      <Key className="h-4 w-4 mr-1" />
-                                      Otorgar Acceso
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent>
-                                    <DialogHeader>
-                                      <DialogTitle>
-                                        Otorgar Acceso al Curso
-                                      </DialogTitle>
-                                      <DialogDescription>
-                                        Otorgar acceso de 120 días al curso para{" "}
-                                        {member.leadData.name}
-                                      </DialogDescription>
-                                    </DialogHeader>
+                            {/* Grant Access Button - Only if access not granted */}
+                            {!member.accessGranted && canManageAccess() && (
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    onClick={() =>
+                                      setSelectedMemberForGrant(member)
+                                    }
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    <Key className="h-4 w-4 mr-1" />
+                                    Otorgar Acceso
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>
+                                      Otorgar Acceso al Curso
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                      Otorgar acceso de 120 días al curso para{" "}
+                                      {member.leadData.name}
+                                    </DialogDescription>
+                                  </DialogHeader>
 
-                                    <div className="space-y-4">
-                                      <div>
-                                        <Label htmlFor="startDate">
-                                          Fecha de Inicio
-                                        </Label>
-                                        <Input
-                                          id="startDate"
-                                          type="date"
-                                          value={accessStartDate}
-                                          onChange={(e) =>
-                                            setAccessStartDate(e.target.value)
-                                          }
-                                          min={
-                                            new Date()
-                                              .toISOString()
-                                              .split("T")[0]
-                                          }
-                                        />
-                                      </div>
-
-                                      <div className="bg-blue-50 p-3 rounded-md">
-                                        <p className="text-sm text-blue-800">
-                                          El acceso expirará automáticamente 120
-                                          días después de la fecha de inicio.
-                                        </p>
-                                      </div>
+                                  <div className="space-y-4">
+                                    <div>
+                                      <Label htmlFor="startDate">
+                                        Fecha de Inicio
+                                      </Label>
+                                      <Input
+                                        id="startDate"
+                                        type="date"
+                                        value={accessStartDate}
+                                        onChange={(e) =>
+                                          setAccessStartDate(e.target.value)
+                                        }
+                                        min={
+                                          new Date().toISOString().split("T")[0]
+                                        }
+                                      />
                                     </div>
 
-                                    <DialogFooter>
-                                      <Button
-                                        onClick={handleGrantAccess}
-                                        disabled={
-                                          grantingAccess || !accessStartDate
-                                        }
-                                      >
-                                        {grantingAccess
-                                          ? "Otorgando..."
-                                          : "Otorgar Acceso"}
-                                      </Button>
-                                    </DialogFooter>
-                                  </DialogContent>
-                                </Dialog>
-                              )}
+                                    <div className="bg-blue-50 p-3 rounded-md">
+                                      <p className="text-sm text-blue-800">
+                                        El acceso expirará automáticamente 120
+                                        días después de la fecha de inicio.
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <DialogFooter>
+                                    <Button
+                                      onClick={handleGrantAccess}
+                                      disabled={
+                                        grantingAccess || !accessStartDate
+                                      }
+                                    >
+                                      {grantingAccess
+                                        ? "Otorgando..."
+                                        : "Otorgar Acceso"}
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                            )}
+
+                            {/* Update Access Button - Only if access already granted */}
+                            {member.accessGranted && canManageAccess() && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedMemberForUpdate(member);
+                                  // Set current start date as default
+                                  if (member.accessStartDate) {
+                                    const currentDate = toJsDate(
+                                      member.accessStartDate
+                                    );
+                                    if (currentDate) {
+                                      setNewAccessStartDate(
+                                        currentDate.toISOString().split("T")[0]
+                                      );
+                                    }
+                                  }
+                                  setShowUpdateAccessModal(true);
+                                }}
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <Edit3 className="h-4 w-4 mr-1" />
+                                Modificar Acceso
+                              </Button>
+                            )}
+
+                            {/* Revoke Access Button - Only if access granted */}
+                            {member.accessGranted && canManageAccess() && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedMemberForRevoke(member);
+                                  setShowRevokeDialog(true);
+                                }}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <UserMinus className="h-4 w-4 mr-1" />
+                                Revocar Acceso
+                              </Button>
+                            )}
 
                             <Button size="sm" variant="outline" asChild>
                               <a href={`/admin/leads/${member.leadId}`}>
@@ -617,19 +728,131 @@ export default function ActivosPage() {
           </CardContent>
         </Card>
 
+        {/* Update Access Modal */}
+        <Dialog
+          open={showUpdateAccessModal}
+          onOpenChange={setShowUpdateAccessModal}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Modificar Acceso al Curso</DialogTitle>
+              <DialogDescription>
+                {selectedMemberForUpdate && (
+                  <>
+                    Actualizar las fechas de acceso para{" "}
+                    {selectedMemberForUpdate.leadData.name}
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="newStartDate">Nueva Fecha de Inicio</Label>
+                <Input
+                  id="newStartDate"
+                  type="date"
+                  value={newAccessStartDate}
+                  onChange={(e) => setNewAccessStartDate(e.target.value)}
+                />
+              </div>
+
+              <div className="bg-amber-50 p-3 rounded-md">
+                <p className="text-sm text-amber-800">
+                  <Shield className="h-4 w-4 inline mr-1" />
+                  Esto actualizará la fecha de inicio y recalculará
+                  automáticamente la fecha de expiración (120 días después).
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowUpdateAccessModal(false);
+                  setSelectedMemberForUpdate(null);
+                  setNewAccessStartDate("");
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleUpdateAccess}
+                disabled={updatingAccess || !newAccessStartDate}
+              >
+                {updatingAccess ? "Actualizando..." : "Actualizar Acceso"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Revoke Access Alert Dialog */}
+        <AlertDialog open={showRevokeDialog} onOpenChange={setShowRevokeDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Revocar Acceso al Curso?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {selectedMemberForRevoke && (
+                  <>
+                    Esta acción revocará el acceso al curso para{" "}
+                    {selectedMemberForRevoke.leadData.name}. Esta acción no se
+                    puede deshacer fácilmente.
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="revokeReason">Razón (opcional)</Label>
+                <Textarea
+                  id="revokeReason"
+                  value={revokeReason}
+                  onChange={(e) => setRevokeReason(e.target.value)}
+                  placeholder="Explicar por qué se revoca el acceso..."
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => {
+                  setShowRevokeDialog(false);
+                  setSelectedMemberForRevoke(null);
+                  setRevokeReason("");
+                }}
+              >
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleRevokeAccess}
+                disabled={revokingAccess}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {revokingAccess ? "Revocando..." : "Revocar Acceso"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {/* Payment Modal */}
         <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Agregar Pago</DialogTitle>
               <DialogDescription>
-                {selectedMember && (
+                {selectedMemberForPayment && (
                   <>
-                    Registrar nuevo pago para {selectedMember.leadData.name}
+                    Registrar nuevo pago para{" "}
+                    {selectedMemberForPayment.leadData.name}
                     <br />
                     <span className="text-sm text-gray-600">
                       Falta por pagar: $
-                      {getRemainingAmount(selectedMember).toLocaleString()}
+                      {getRemainingAmount(
+                        selectedMemberForPayment
+                      ).toLocaleString()}
                     </span>
                   </>
                 )}
@@ -689,7 +912,7 @@ export default function ActivosPage() {
                   variant="outline"
                   onClick={() => {
                     setShowPaymentModal(false);
-                    setSelectedMember(null);
+                    setSelectedMemberForPayment(null);
                     setPaymentForm({
                       amount: "",
                       imageUrl: "",
