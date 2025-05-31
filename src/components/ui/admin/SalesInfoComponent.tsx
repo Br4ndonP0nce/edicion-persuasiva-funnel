@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Lead } from "@/lib/firebase/db";
 import { getSaleByLeadId, addPaymentProof } from "@/lib/firebase/sales";
+import { uploadPaymentProof } from "@/lib/firebase/storage";
 import { Sale, PaymentProof } from "@/types/sales";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { FileUpload } from "@/components/ui/FileUpload";
 import {
   Dialog,
   DialogContent,
@@ -51,9 +53,12 @@ export default function SalesInfoComponent({
 
   const [paymentForm, setPaymentForm] = useState({
     amount: "",
-    imageUrl: "",
     description: "",
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Utility function to safely convert any date format to JavaScript Date
   const toJsDate = (date: any): Date | null => {
@@ -114,16 +119,41 @@ export default function SalesInfoComponent({
   const handleAddPaymentProof = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!sale || !userProfile || !paymentForm.amount || !paymentForm.imageUrl) {
+    if (!sale || !userProfile || !paymentForm.amount || !selectedFile) {
+      setUploadError("Por favor completa todos los campos requeridos");
       return;
     }
 
     try {
       setUploadingPayment(true);
+      setUploadingFile(true);
+      setUploadError(null);
+
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      // Upload file to Firebase Storage
+      const imageUrl = await uploadPaymentProof(
+        selectedFile,
+        sale.id!,
+        userProfile.uid
+      );
+
+      // Complete progress
+      clearInterval(progressInterval);
+      setUploadProgress(100);
 
       const paymentProof: Omit<PaymentProof, "id" | "uploadedAt"> = {
         amount: parseFloat(paymentForm.amount),
-        imageUrl: paymentForm.imageUrl,
+        imageUrl,
         uploadedBy: userProfile.uid,
         description: paymentForm.description,
       };
@@ -134,14 +164,20 @@ export default function SalesInfoComponent({
       await loadSaleData();
 
       // Reset form and close modal
-      setPaymentForm({ amount: "", imageUrl: "", description: "" });
+      setPaymentForm({ amount: "", description: "" });
+      setSelectedFile(null);
+      setUploadProgress(0);
       setShowPaymentModal(false);
 
       if (onLeadUpdate) onLeadUpdate();
     } catch (error) {
       console.error("Error adding payment proof:", error);
+      setUploadError(
+        error instanceof Error ? error.message : "Failed to add payment"
+      );
     } finally {
       setUploadingPayment(false);
+      setUploadingFile(false);
     }
   };
 
@@ -447,23 +483,27 @@ export default function SalesInfoComponent({
                         }
                         placeholder="0.00"
                         required
+                        disabled={uploadingPayment}
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="imageUrl">URL de la Imagen</Label>
-                      <Input
-                        id="imageUrl"
-                        type="url"
-                        value={paymentForm.imageUrl}
-                        onChange={(e) =>
-                          setPaymentForm({
-                            ...paymentForm,
-                            imageUrl: e.target.value,
-                          })
-                        }
-                        placeholder="https://..."
-                        required
+                      <Label htmlFor="paymentProof">Comprobante de Pago</Label>
+                      <FileUpload
+                        onFileSelected={(file) => {
+                          setSelectedFile(file);
+                          setUploadError(null);
+                        }}
+                        onFileRemoved={() => {
+                          setSelectedFile(null);
+                          setUploadError(null);
+                        }}
+                        isUploading={uploadingFile}
+                        uploadProgress={uploadProgress}
+                        disabled={uploadingPayment}
+                        maxSize={5}
+                        placeholder="Selecciona el comprobante de pago"
+                        error={uploadError || undefined}
                       />
                     </div>
 
@@ -482,6 +522,7 @@ export default function SalesInfoComponent({
                         }
                         placeholder="Detalles del pago..."
                         rows={3}
+                        disabled={uploadingPayment}
                       />
                     </div>
 
@@ -489,11 +530,25 @@ export default function SalesInfoComponent({
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setShowPaymentModal(false)}
+                        onClick={() => {
+                          setShowPaymentModal(false);
+                          setPaymentForm({ amount: "", description: "" });
+                          setSelectedFile(null);
+                          setUploadProgress(0);
+                          setUploadError(null);
+                        }}
+                        disabled={uploadingPayment}
                       >
                         Cancelar
                       </Button>
-                      <Button type="submit" disabled={uploadingPayment}>
+                      <Button
+                        type="submit"
+                        disabled={
+                          uploadingPayment ||
+                          !selectedFile ||
+                          !paymentForm.amount
+                        }
+                      >
                         {uploadingPayment
                           ? "Guardando..."
                           : "Guardar Comprobante"}

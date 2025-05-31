@@ -15,7 +15,8 @@ export default function Home() {
   const [contentReady, setContentReady] = useState(false);
 
   // Main video URL - should match what's in Hero section
-  const mainVideoUrl = "https://cdn.edicionpersuasiva.com/mainVSL.mp4";
+  const mainVideoUrl =
+    "https://firebasestorage.googleapis.com/v0/b/edicion-persuasiva.firebasestorage.app/o/public%2Fvideos%2FheroVideo.mp4?alt=media&token=4e7fac54-fbbe-48c5-8ba6-d562219f487a";
 
   const handlePreloadComplete = () => {
     console.log("🎉 Preloader completed - video should be ready");

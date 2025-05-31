@@ -36,7 +36,8 @@ const HeroSection = () => {
     module1: "MÓDULO COGNITIVO",
     module2: "MÓDULO PRÁCTICO",
     module3: "CIERRES DE VENTAS",
-    video_url: "https://cdn.edicionpersuasiva.com/mainVSL.mp4",
+    video_url:
+      "https://firebasestorage.googleapis.com/v0/b/edicion-persuasiva.firebasestorage.app/o/public%2Fvideos%2FheroVideo.mp4?alt=media&token=4e7fac54-fbbe-48c5-8ba6-d562219f487a",
     poster_url: "/image/hero-poster.jpg",
     cta_button: "Deseo Aplicar",
     cta_url: "join",
