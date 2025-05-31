@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { createSale } from "@/lib/firebase/sales";
 import { updateLead } from "@/lib/firebase/db";
+import { uploadPaymentProof } from "@/lib/firebase/storage";
 import { PAYMENT_PLANS } from "@/types/sales";
+import { FileUpload } from "@/components/ui/FileUpload";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +24,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { DollarSign, CreditCard, AlertCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DollarSign,
+  CreditCard,
+  AlertCircle,
+  Upload,
+  FileImage,
+} from "lucide-react";
 
 interface SaleModalProps {
   isOpen: boolean;
@@ -46,17 +55,27 @@ export default function SaleModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // File upload states
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState<{
     product: "acceso_curso" | "others";
     paymentPlan: keyof typeof PAYMENT_PLANS;
     customAmount: string;
     initialPayment: string;
+    hasInitialPayment: boolean;
+    paymentDescription: string;
     notes: string;
   }>({
     product: "acceso_curso",
     paymentPlan: "1_pago",
     customAmount: "",
     initialPayment: "",
+    hasInitialPayment: false,
+    paymentDescription: "",
     notes: "",
   });
 
@@ -82,9 +101,14 @@ export default function SaleModal({
         paymentPlan: recommended as keyof typeof PAYMENT_PLANS,
         customAmount: "",
         initialPayment: "",
+        hasInitialPayment: false,
+        paymentDescription: "",
         notes: "",
       });
       setError(null);
+      setSelectedFile(null);
+      setUploadError(null);
+      setUploadProgress(0);
     }
   }, [isOpen, lead.investment]);
 
@@ -101,7 +125,6 @@ export default function SaleModal({
     }
 
     const totalAmount = getTotalAmount();
-    const plan = PAYMENT_PLANS[formData.paymentPlan];
 
     // Default initial payment based on plan
     switch (formData.paymentPlan) {
@@ -116,6 +139,59 @@ export default function SaleModal({
     }
   };
 
+  const handleFileSelected = (file: File) => {
+    setSelectedFile(file);
+    setUploadError(null);
+  };
+
+  const handleFileRemoved = () => {
+    setSelectedFile(null);
+    setUploadError(null);
+  };
+
+  const uploadPaymentProofFile = async (
+    saleId: string
+  ): Promise<string | null> => {
+    if (!selectedFile || !userProfile) return null;
+
+    try {
+      setUploadingFile(true);
+      setUploadError(null);
+
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 15;
+        });
+      }, 200);
+
+      // Upload file to Firebase Storage
+      const imageUrl = await uploadPaymentProof(
+        selectedFile,
+        saleId,
+        userProfile.uid
+      );
+
+      // Complete progress
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      return imageUrl;
+    } catch (error) {
+      console.error("Error uploading payment proof:", error);
+      setUploadError(
+        error instanceof Error ? error.message : "Error al subir el archivo"
+      );
+      return null;
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -125,15 +201,20 @@ export default function SaleModal({
     }
 
     const totalAmount = getTotalAmount();
-    const initialPayment = getInitialPayment();
+    const initialPayment = formData.hasInitialPayment ? getInitialPayment() : 0;
 
     if (totalAmount <= 0) {
       setError("El monto total debe ser mayor a 0");
       return;
     }
 
-    if (initialPayment > totalAmount) {
+    if (formData.hasInitialPayment && initialPayment > totalAmount) {
       setError("El pago inicial no puede ser mayor al monto total");
+      return;
+    }
+
+    if (formData.hasInitialPayment && initialPayment > 0 && !selectedFile) {
+      setError("Debes subir un comprobante de pago para el pago inicial");
       return;
     }
 
@@ -141,28 +222,15 @@ export default function SaleModal({
       setLoading(true);
       setError(null);
 
-      // Create the sale
+      // Create the sale first
       const saleData = {
         leadId: lead.id,
         saleUserId: userProfile.uid,
         product: formData.product,
         paymentPlan: formData.paymentPlan,
         totalAmount,
-        paidAmount: initialPayment,
-        paymentProofs:
-          initialPayment > 0
-            ? [
-                {
-                  id: `initial_${Date.now()}`,
-                  amount: initialPayment,
-                  imageUrl: "", // Will be updated when proof is uploaded
-                  uploadedAt: new Date(),
-                  uploadedBy: userProfile.uid,
-                  description:
-                    "Pago inicial registrado en la creación de la venta",
-                },
-              ]
-            : [],
+        paidAmount: 0, // Will be updated after uploading proof
+        paymentProofs: [],
         accessGranted: false,
         accessStartDate: null,
         accessEndDate: null,
@@ -170,6 +238,35 @@ export default function SaleModal({
       };
 
       const saleId = await createSale(saleData);
+
+      // Upload payment proof if there's an initial payment
+      let imageUrl = "";
+      if (formData.hasInitialPayment && initialPayment > 0 && selectedFile) {
+        const uploadResult = await uploadPaymentProofFile(saleId);
+
+        if (uploadResult) {
+          imageUrl = uploadResult;
+        } else {
+          // If upload failed, still create the sale but show warning
+          console.warn("Payment proof upload failed, but sale was created");
+        }
+      }
+
+      // If there's an initial payment, add it to the sale
+      if (formData.hasInitialPayment && initialPayment > 0) {
+        const { addPaymentProof } = await import("@/lib/firebase/sales");
+
+        const paymentProof = {
+          amount: initialPayment,
+          imageUrl: imageUrl || "", // Handle null case by providing empty string fallback
+          uploadedBy: userProfile.uid, // Add required uploadedBy field
+          description:
+            formData.paymentDescription ||
+            "Pago inicial registrado en la creación de la venta",
+        };
+
+        await addPaymentProof(saleId, paymentProof, userProfile.uid);
+      }
 
       // Update lead status to 'sale'
       await updateLead(
@@ -222,7 +319,7 @@ export default function SaleModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <DollarSign className="mr-2 h-5 w-5 text-green-600" />
@@ -251,65 +348,67 @@ export default function SaleModal({
           }`}
         >
           <p className="font-medium">Análisis de Inversión:</p>
-          <p>"{lead.investment}"</p>
+          <p className="mt-1 text-xs italic">"{lead.investment}"</p>
           <p className="mt-1 font-medium">{recommendation.message}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Product Selection */}
-          <div>
-            <Label htmlFor="product">Producto</Label>
-            <Select
-              value={formData.product}
-              onValueChange={(value) =>
-                setFormData({
-                  ...formData,
-                  product: value as "acceso_curso" | "others",
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="acceso_curso">
-                  Acceso al Curso (120 días)
-                </SelectItem>
-                <SelectItem value="others">Otro Producto</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Payment Plan */}
-          <div>
-            <Label htmlFor="paymentPlan">Plan de Pago</Label>
-            <Select
-              value={formData.paymentPlan}
-              onValueChange={(value) =>
-                setFormData({
-                  ...formData,
-                  paymentPlan: value as keyof typeof PAYMENT_PLANS,
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(PAYMENT_PLANS).map(([key, plan]) => (
-                  <SelectItem key={key} value={key}>
-                    <div className="flex items-center justify-between w-full">
-                      <span>{plan.label}</span>
-                      {key === recommendation.plan && (
-                        <span className="ml-2 text-xs bg-green-100 text-green-600 px-1 rounded">
-                          Recomendado
-                        </span>
-                      )}
-                    </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Product Selection */}
+            <div>
+              <Label htmlFor="product">Producto</Label>
+              <Select
+                value={formData.product}
+                onValueChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    product: value as "acceso_curso" | "others",
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="acceso_curso">
+                    Acceso al Curso (120 días)
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  <SelectItem value="others">Otro Producto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Payment Plan */}
+            <div>
+              <Label htmlFor="paymentPlan">Plan de Pago</Label>
+              <Select
+                value={formData.paymentPlan}
+                onValueChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    paymentPlan: value as keyof typeof PAYMENT_PLANS,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PAYMENT_PLANS).map(([key, plan]) => (
+                    <SelectItem key={key} value={key}>
+                      <div className="flex items-center justify-between w-full">
+                        <span>{plan.label}</span>
+                        {key === recommendation.plan && (
+                          <span className="ml-2 text-xs bg-green-100 text-green-600 px-1 rounded">
+                            Recomendado
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Custom Amount */}
@@ -328,34 +427,115 @@ export default function SaleModal({
               min="0"
               step="0.01"
             />
-          </div>
-
-          {/* Initial Payment */}
-          <div>
-            <Label htmlFor="initialPayment">Pago Inicial</Label>
-            <Input
-              id="initialPayment"
-              type="number"
-              placeholder={`Sugerido: $${getInitialPayment()}`}
-              value={formData.initialPayment}
-              onChange={(e) =>
-                setFormData({ ...formData, initialPayment: e.target.value })
-              }
-              min="0"
-              max={getTotalAmount()}
-              step="0.01"
-            />
             <p className="text-xs text-gray-500 mt-1">
-              Monto total: ${getTotalAmount().toLocaleString()}
+              Monto total:{" "}
+              <span className="font-medium">
+                ${getTotalAmount().toLocaleString()}
+              </span>
             </p>
           </div>
 
+          {/* Initial Payment Checkbox */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="hasInitialPayment"
+              checked={formData.hasInitialPayment}
+              onCheckedChange={(checked) =>
+                setFormData({
+                  ...formData,
+                  hasInitialPayment: checked as boolean,
+                  initialPayment: checked ? formData.initialPayment : "",
+                  paymentDescription: checked
+                    ? formData.paymentDescription
+                    : "",
+                })
+              }
+            />
+            <Label htmlFor="hasInitialPayment" className="text-sm font-medium">
+              Cliente realizó un pago inicial
+            </Label>
+          </div>
+
+          {/* Initial Payment Fields - Only show if checkbox is checked */}
+          {formData.hasInitialPayment && (
+            <div className="space-y-4 p-4 bg-gray-50 rounded-lg border">
+              <div className="flex items-center space-x-2 mb-3">
+                <FileImage className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-gray-700">
+                  Información del Pago Inicial
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Initial Payment Amount */}
+                <div>
+                  <Label htmlFor="initialPayment">Monto del Pago</Label>
+                  <Input
+                    id="initialPayment"
+                    type="number"
+                    placeholder={`Sugerido: $${getInitialPayment()}`}
+                    value={formData.initialPayment}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        initialPayment: e.target.value,
+                      })
+                    }
+                    min="0"
+                    max={getTotalAmount()}
+                    step="0.01"
+                    required={formData.hasInitialPayment}
+                  />
+                </div>
+
+                {/* Payment Description */}
+                <div>
+                  <Label htmlFor="paymentDescription">
+                    Descripción del Pago (opcional)
+                  </Label>
+                  <Input
+                    id="paymentDescription"
+                    placeholder="Ej: Pago por transferencia"
+                    value={formData.paymentDescription}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        paymentDescription: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* File Upload */}
+              <div>
+                <Label>Comprobante de Pago</Label>
+                <FileUpload
+                  onFileSelected={handleFileSelected}
+                  onFileRemoved={handleFileRemoved}
+                  isUploading={uploadingFile}
+                  uploadProgress={uploadProgress}
+                  disabled={loading}
+                  maxSize={5}
+                  placeholder="Selecciona el comprobante de pago"
+                  error={uploadError || undefined}
+                />
+                {formData.hasInitialPayment && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    <span className="text-red-500">*</span> Requerido para pagos
+                    iniciales
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Notes */}
           <div>
-            <Label htmlFor="notes">Notas (opcional)</Label>
+            <Label htmlFor="notes">Notas Adicionales (opcional)</Label>
             <Textarea
               id="notes"
-              placeholder="Detalles adicionales sobre la venta..."
+              placeholder="Detalles adicionales sobre la venta, acuerdos especiales, etc."
               value={formData.notes}
               onChange={(e) =>
                 setFormData({ ...formData, notes: e.target.value })
@@ -365,10 +545,19 @@ export default function SaleModal({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={loading}
+            >
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button
+              type="submit"
+              disabled={loading || uploadingFile}
+              className="min-w-[120px]"
+            >
               {loading ? (
                 <>Creando...</>
               ) : (
