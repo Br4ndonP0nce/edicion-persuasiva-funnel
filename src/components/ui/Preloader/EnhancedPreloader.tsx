@@ -146,7 +146,7 @@ const EnhancedPreloader: React.FC<EnhancedPreloaderProps> = ({
     if (timeoutReached) return "Finalizando carga...";
     if (isPreloading && !timeoutReached)
       return `${Math.round(displayProgress)}%`;
-    if (isVideoReady) return "¡Listo!";
+    if (isVideoReady) return "";
     return `Cargando... ${Math.round(displayProgress)}%`;
   };
 
