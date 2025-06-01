@@ -1,0 +1,93 @@
+// storage.rules - Mixed Public/Private Security Rules
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.role in ['super_admin', 'admin'];
+    }
+    
+    function isUploader() {
+      return isAuthenticated() && 
+             request.auth.uid == resource.metadata.uploadedBy;
+    }
+    
+    // ================================
+    // PUBLIC CONTENT (Website Media)
+    // ================================
+    match /public/{allPaths=**} {
+      // Allow anyone to read public content (for website)
+      allow read: if true;
+      
+      // Only authenticated users can upload to public
+      allow write: if isAuthenticated() && 
+                      request.resource.size < 10 * 1024 * 1024 && // Max 10MB for media
+                      request.resource.contentType.matches('(image|video)/.*'); // Images and videos only
+      
+      // Only admins can delete public content
+      allow delete: if isAdmin();
+    }
+    
+    // ================================
+    // PRIVATE CRM CONTENT
+    // ================================
+    
+    // Payment proof images - PRIVATE
+    match /payments/{saleId}/{fileName} {
+      // Only authenticated users can view payment proofs
+      allow read: if isAuthenticated();
+      
+      // Allow upload for authenticated users
+      allow write: if isAuthenticated() && 
+                      request.resource.size < 5 * 1024 * 1024 && // Max 5MB
+                      request.resource.contentType.matches('image/.*') && // Only images
+                      request.resource.metadata.uploadedBy == request.auth.uid;
+      
+      // Allow delete for admins or uploader
+      allow delete: if isAdmin() || isUploader();
+    }
+    
+    // User profile/document images - PRIVATE
+    match /users/{userId}/{type}/{fileName} {
+      // Allow read for authenticated users (profile pics) or admins only (documents)
+      allow read: if isAuthenticated() && 
+                     (type == 'profile' || isAdmin());
+      
+      // Allow write for user themselves or admins
+      allow write: if isAuthenticated() && 
+                      (request.auth.uid == userId || isAdmin()) &&
+                      request.resource.size < 5 * 1024 * 1024 && 
+                      request.resource.contentType.matches('image/.*');
+      
+      // Allow delete for user themselves or admins
+      allow delete: if isAuthenticated() && 
+                       (request.auth.uid == userId || isAdmin());
+    }
+    
+    // ================================
+    // ADMIN-ONLY AREAS
+    // ================================
+    match /admin/{allPaths=**} {
+      allow read, write, delete: if isAdmin();
+    }
+    
+    // Backup folder
+    match /backups/{allPaths=**} {
+      allow read, write, delete: if isAdmin();
+    }
+    
+    // ================================
+    // DEFAULT DENY
+    // ================================
+    match /{allPaths=**} {
+      allow read, write, delete: if false;
+    }
+  }
+}

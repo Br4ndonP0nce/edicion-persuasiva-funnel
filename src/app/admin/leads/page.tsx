@@ -6,6 +6,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useAuth } from "@/hooks/useAuth";
 import { getLeads, Lead } from "@/lib/firebase/db";
+import { exportLeadsToExcel } from "@/lib/utils/excelExport";
 
 import LeadTable from "@/components/ui/admin/LeadTable";
 import { motion } from "framer-motion";
@@ -13,7 +14,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Filter, Download, Lock } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Filter,
+  Download,
+  Lock,
+  FileSpreadsheet,
+  Loader2,
+} from "lucide-react";
 
 export default function LeadsPage() {
   const { hasPermission } = useAuth();
@@ -23,6 +32,7 @@ export default function LeadsPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -74,36 +84,19 @@ export default function LeadsPage() {
     );
   };
 
-  const exportToCsv = () => {
-    const headers = ["Nombre", "Email", "Teléfono", "Estado", "Fecha"];
-    const csvContent = [
-      headers.join(","),
-      ...filteredLeads.map((lead) =>
-        [
-          `"${lead.name}"`,
-          `"${lead.email}"`,
-          `"${lead.phone}"`,
-          `"${lead.status}"`,
-          `"${
-            lead.createdAt
-              ? new Date(lead.createdAt.seconds * 1000).toLocaleString()
-              : "N/A"
-          }"`,
-        ].join(",")
-      ),
-    ].join("\n");
+  const handleExportToExcel = async () => {
+    try {
+      setIsExporting(true);
+      setError(null);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `leads_${new Date().toISOString().slice(0, 10)}.csv`
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      // Use filtered leads for export (respects current search/filter)
+      await exportLeadsToExcel(filteredLeads);
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      setError("Failed to export data to Excel");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -124,8 +117,23 @@ export default function LeadsPage() {
               />
             </div>
 
-            <Button variant="outline" onClick={exportToCsv}>
-              <Download className="mr-2 h-4 w-4" /> Exportar
+            <Button
+              variant="outline"
+              onClick={handleExportToExcel}
+              disabled={isExporting || filteredLeads.length === 0}
+              className="relative"
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Exportando...
+                </>
+              ) : (
+                <>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  Exportar Excel
+                </>
+              )}
             </Button>
 
             <PermissionGate permissions={["leads:write"]}>
@@ -151,13 +159,49 @@ export default function LeadsPage() {
           </div>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-100 text-red-700 p-4 rounded-md mb-6 flex items-between">
+            <span className="flex-1">{error}</span>
+            <button
+              onClick={() => setError(null)}
+              className="ml-2 text-red-600 hover:text-red-800"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* Export Status */}
+        {isExporting && (
+          <div className="bg-blue-100 text-blue-800 p-4 rounded-md mb-6 flex items-center">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <div>
+              <p className="font-medium">Preparando reporte Excel...</p>
+              <p className="text-sm">
+                Recopilando datos de ventas y pagos. Esto puede tomar unos
+                momentos.
+              </p>
+            </div>
+          </div>
+        )}
+
         <Tabs defaultValue="all" onValueChange={setActiveTab}>
           <TabsList className="mb-4">
-            <TabsTrigger value="all">Todos</TabsTrigger>
-            <TabsTrigger value="lead">Nuevos</TabsTrigger>
-            <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
-            <TabsTrigger value="sale">Ventas</TabsTrigger>
-            <TabsTrigger value="rejected">Rechazados</TabsTrigger>
+            <TabsTrigger value="all">Todos ({leads.length})</TabsTrigger>
+            <TabsTrigger value="lead">
+              Nuevos ({leads.filter((l) => l.status === "lead").length})
+            </TabsTrigger>
+            <TabsTrigger value="onboarding">
+              Onboarding (
+              {leads.filter((l) => l.status === "onboarding").length})
+            </TabsTrigger>
+            <TabsTrigger value="sale">
+              Ventas ({leads.filter((l) => l.status === "sale").length})
+            </TabsTrigger>
+            <TabsTrigger value="rejected">
+              Rechazados ({leads.filter((l) => l.status === "rejected").length})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
@@ -166,10 +210,6 @@ export default function LeadsPage() {
                 {isLoading ? (
                   <div className="flex justify-center items-center h-64">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-                  </div>
-                ) : error ? (
-                  <div className="bg-red-100 text-red-700 p-4 rounded-md">
-                    {error}
                   </div>
                 ) : (
                   <LeadTable
@@ -189,10 +229,6 @@ export default function LeadsPage() {
                     <div className="flex justify-center items-center h-64">
                       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
                     </div>
-                  ) : error ? (
-                    <div className="bg-red-100 text-red-700 p-4 rounded-md">
-                      {error}
-                    </div>
                   ) : (
                     <LeadTable
                       leads={filteredLeads}
@@ -204,6 +240,18 @@ export default function LeadsPage() {
             </TabsContent>
           ))}
         </Tabs>
+
+        {/* Export Info */}
+        {!isLoading && filteredLeads.length > 0 && (
+          <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <p className="text-sm text-gray-600">
+              <FileSpreadsheet className="inline h-4 w-4 mr-1" />
+              El reporte incluye: datos del lead, información de ventas,
+              progreso de pagos, estado de acceso al curso y estadísticas
+              resumidas en una segunda hoja.
+            </p>
+          </div>
+        )}
       </div>
     </ProtectedRoute>
   );

@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getLead, updateLead, Lead } from "@/lib/firebase/db";
-
+import SalesInfoComponent from "@/components/ui/admin/SalesInfoComponent";
+import LeadHistoryComponent from "@/components/ui/admin/LeadHistoryComponent";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -326,6 +327,14 @@ export default function LeadDetailsPage() {
           </div>
         </CardContent>
       </Card>
+      <SalesInfoComponent
+        lead={lead}
+        isLoading={isLoading}
+        onLeadUpdate={() => {
+          // Optional: refetch lead if needed
+        }}
+      />
+      <LeadHistoryComponent lead={lead} />
     </div>
   );
 }

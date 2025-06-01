@@ -26,13 +26,22 @@ import {
     investment: string;
     why: string;
     status: 'lead' | 'onboarding' | 'sale' | 'rejected';
+    saleId?: string; // Reference to sale document - FIXED: Added this property
     createdAt?: Timestamp;
     updatedAt?: Timestamp;
     agentData?: any; // Data from n8n agent processing
     notes?: string;
     assignedTo?: string;
+    statusHistory?: LeadStatusHistory[]; // ADDED: Status history tracking
   }
-  
+  export interface LeadStatusHistory {
+    id: string;
+    previousStatus: Lead['status'];
+    newStatus: Lead['status'];
+    details: string;
+    performedBy: string;
+    performedAt: Timestamp;
+  }
   // Collection references
   const LEADS_COLLECTION = 'leads';
   
@@ -58,9 +67,28 @@ import {
   /**
    * Update a lead's status or data
    */
-  export const updateLead = async (leadId: string, data: Partial<Lead>): Promise<void> => {
+  export const updateLead = async (leadId: string, data: Partial<Lead>, performedBy?: string): Promise<void> => {
     try {
       const leadRef = doc(db, LEADS_COLLECTION, leadId);
+      
+      // If status is being updated, add to history
+      if (data.status && performedBy) {
+        const currentLead = await getDoc(leadRef);
+        if (currentLead.exists()) {
+          const currentData = currentLead.data() as Lead;
+          const historyEntry: LeadStatusHistory = {
+            id: `history_${Date.now()}`,
+            previousStatus: currentData.status,
+            newStatus: data.status,
+            details: `Status updated from ${currentData.status} to ${data.status}`,
+            performedBy,
+            performedAt: Timestamp.fromDate(new Date()) // Use Timestamp.fromDate instead of serverTimestamp
+          };
+          
+          data.statusHistory = [...(currentData.statusHistory || []), historyEntry];
+        }
+      }
+      
       await updateDoc(leadRef, {
         ...data,
         updatedAt: serverTimestamp()

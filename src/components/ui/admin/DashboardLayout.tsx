@@ -1,3 +1,4 @@
+// src/components/ui/admin/DashboardLayout.tsx - Updated with Activos navigation
 import React, { ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -17,6 +18,8 @@ import {
   FileText,
   UserCog,
   Shield,
+  CheckCircle,
+  CreditCard,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -48,7 +51,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     }
   };
 
-  // Dynamic navigation based on user permissions
+  // Dynamic navigation based on user permissions - UPDATED with Activos
   const navigation = [
     {
       name: "Dashboard",
@@ -63,10 +66,22 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       permission: "leads:read" as const,
     },
     {
+      name: "Activos",
+      href: "/admin/activos",
+      icon: CheckCircle,
+      permission: "active_members:read" as const,
+    },
+    {
       name: "Estadísticas",
       href: "/admin/stats",
       icon: BarChart2,
       permission: "stats:read" as const,
+    },
+    {
+      name: "Ventas",
+      href: "/admin/ventas",
+      icon: CreditCard,
+      permission: "users:read" as const,
     },
     {
       name: "Contenido",
