@@ -378,12 +378,7 @@ const HeroSection = () => {
 
                   {/* Simple background loading indicator */}
                   {timeoutReached && !isVideoReady && continuePreloading && (
-                    <div className="absolute bottom-16 left-0 right-0 flex justify-center">
-                      <div className="text-yellow-400/80 text-xs tracking-wider flex items-center gap-2">
-                        <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                        Video cargando en segundo plano
-                      </div>
-                    </div>
+                    <div className="absolute bottom-16 left-0 right-0 flex justify-center"></div>
                   )}
 
                   {/* Subtitle */}
