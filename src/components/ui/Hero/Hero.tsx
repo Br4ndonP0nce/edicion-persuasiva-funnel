@@ -1,4 +1,4 @@
-// src/components/ui/Hero/HeroWithPreload.tsx
+// src/components/ui/Hero/HeroSimpleTimeout.tsx
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -13,9 +13,11 @@ const HeroSection = () => {
     isVideoReady,
     getPreloadedVideo,
     error: videoError,
+    timeoutReached,
+    continuePreloading,
   } = useVideoPreload();
 
-  // Video player state
+  // Video player state (same as your original)
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -28,7 +30,7 @@ const HeroSection = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Content state from Firebase
+  // Content state from Firebase (same as your original)
   const [content, setContent] = useState({
     subtitle: "Para editores que quieran lograr más y cobrar mucho más",
     headline:
@@ -37,7 +39,7 @@ const HeroSection = () => {
     module2: "MÓDULO PRÁCTICO",
     module3: "CIERRES DE VENTAS",
     video_url:
-      "https://firebasestorage.googleapis.com/v0/b/edicion-persuasiva.firebasestorage.app/o/public%2Fvideos%2FheroVideo.mp4?alt=media&token=4e7fac54-fbbe-48c5-8ba6-d562219f487a",
+      "https://firebasestorage.googleapis.com/v0/b/edicion-persuasiva.firebasestorage.app/o/public%2Fvideos%2FheroVideoCompressed.mp4?alt=media&token=38d812a1-fece-46c3-805b-8980b8aa0bad",
     poster_url: "/image/hero-poster.jpg",
     cta_button: "Deseo Aplicar",
     cta_url: "join",
@@ -46,7 +48,7 @@ const HeroSection = () => {
   // Loading state for content
   const [isContentLoading, setIsContentLoading] = useState(true);
 
-  // Fetch content from Firebase
+  // Fetch content from Firebase (same as your original)
   useEffect(() => {
     const fetchContent = async () => {
       try {
@@ -74,34 +76,53 @@ const HeroSection = () => {
     fetchContent();
   }, []);
 
-  // Transfer preloaded video to visible player when ready
+  // SIMPLIFIED video setup - closer to your original working code
   useEffect(() => {
-    if (isVideoReady && videoRef.current) {
+    if (!videoRef.current || !content.video_url) return;
+
+    const video = videoRef.current;
+
+    // Simple check: use preloaded video if ready, otherwise set source directly
+    if (isVideoReady) {
       const preloadedVideo = getPreloadedVideo();
-      if (preloadedVideo) {
-        console.log("🔄 Transferring preloaded video to Hero player");
+      if (preloadedVideo && preloadedVideo.src) {
+        console.log("🔄 Using preloaded video");
+        video.src = preloadedVideo.src;
+        video.currentTime = preloadedVideo.currentTime || 0;
 
-        // Copy the preloaded video's source and current state
-        videoRef.current.src = preloadedVideo.src;
-        videoRef.current.currentTime = preloadedVideo.currentTime;
-
-        // Set up the visible video element
-        videoRef.current.addEventListener("loadedmetadata", () => {
-          if (videoRef.current) {
-            setDuration(videoRef.current.duration);
-            console.log("✅ Hero video ready for playback");
-          }
-        });
-
-        // If the preloaded video has already loaded metadata, use it immediately
         if (preloadedVideo.duration > 0) {
           setDuration(preloadedVideo.duration);
         }
       }
+    } else if (timeoutReached || videoError) {
+      // Timeout reached or error occurred - use direct video loading (your original approach)
+      console.log("⚠️ Using direct video loading (timeout/error fallback)");
+      video.src = content.video_url;
+      video.preload = "metadata";
     }
-  }, [isVideoReady, getPreloadedVideo]);
 
-  // Video control functions
+    // Standard event listeners (same as your original)
+    const handleLoadedMetadata = () => {
+      if (video.duration > 0) {
+        setDuration(video.duration);
+      }
+    };
+
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    return () =>
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+  }, [
+    isVideoReady,
+    getPreloadedVideo,
+    timeoutReached,
+    videoError,
+    content.video_url,
+  ]);
+
+  // Simple availability check - video is available if preload is ready OR timeout reached
+  const isVideoAvailable = isVideoReady || timeoutReached || videoError;
+
+  // Your original video control functions (unchanged)
   const formatTime = (timeInSeconds: number) => {
     const minutes = Math.floor(timeInSeconds / 60);
     const seconds = Math.floor(timeInSeconds % 60);
@@ -111,15 +132,27 @@ const HeroSection = () => {
   };
 
   const togglePlay = () => {
-    if (!videoRef.current || !isVideoReady) return;
+    if (!videoRef.current) return;
 
     if (isPlaying) {
       videoRef.current.pause();
     } else {
+      // Simple check before playing
+      if (!videoRef.current.src) {
+        videoRef.current.src = content.video_url;
+        videoRef.current.load();
+        return;
+      }
+
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch((error) => {
           console.error("Error playing video:", error);
+          // If play fails, try reloading the video source
+          if (videoRef.current) {
+            videoRef.current.src = content.video_url;
+            videoRef.current.load();
+          }
         });
       }
     }
@@ -196,7 +229,7 @@ const HeroSection = () => {
     };
   }, []);
 
-  // Animation variants
+  // Animation variants (same as your original)
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -284,14 +317,14 @@ const HeroSection = () => {
           </div>
         </motion.div>
 
-        {/* Video Player - No loading states needed! */}
+        {/* Video Player - Simplified */}
         <motion.div variants={itemVariants}>
           <div
             className="mx-auto rounded-lg overflow-hidden border border-gray-800 shadow-2xl max-w-3xl"
             ref={containerRef}
           >
             <div className="relative">
-              {/* Video Element */}
+              {/* Video Element - Keep it simple */}
               <video
                 ref={videoRef}
                 className="w-full aspect-video bg-black"
@@ -301,11 +334,12 @@ const HeroSection = () => {
                 playsInline
                 webkit-playsinline="true"
               >
+                <source src={content.video_url} type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
 
-              {/* Play Overlay - Shows when video is ready and not playing */}
-              {isVideoReady && !isPlaying && (
+              {/* Play Overlay - Show when video is available and not playing */}
+              {isVideoAvailable && !isPlaying && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
                   <div
                     className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-wider mb-4"
@@ -342,8 +376,18 @@ const HeroSection = () => {
                     <div className="absolute inset-0 rounded-full border-2 border-purple-400 animate-ping opacity-20"></div>
                   </motion.button>
 
+                  {/* Simple background loading indicator */}
+                  {timeoutReached && !isVideoReady && continuePreloading && (
+                    <div className="absolute bottom-16 left-0 right-0 flex justify-center">
+                      <div className="text-yellow-400/80 text-xs tracking-wider flex items-center gap-2">
+                        <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                        Video cargando en segundo plano
+                      </div>
+                    </div>
+                  )}
+
                   {/* Subtitle */}
-                  <div className="absolute bottom-12 left-0 right-0 flex justify-center">
+                  <div className="absolute bottom-8 left-0 right-0 flex justify-center">
                     <div className="text-white/80 text-xs tracking-wider">
                       Edición Persuasiva • Diego Hernández
                     </div>
@@ -351,7 +395,7 @@ const HeroSection = () => {
                 </div>
               )}
 
-              {/* Video Controls - Only show when playing */}
+              {/* Video Controls - Only show when playing (same as your original) */}
               {isPlaying && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -523,47 +567,52 @@ const HeroSection = () => {
                   onClick={handleProgressBarClick}
                 />
               </div>
-
-              {/* Error State */}
-              {videoError && !isVideoReady && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80">
-                  <div className="text-center text-white p-6">
-                    <div className="text-red-400 mb-2">
-                      <svg
-                        className="w-12 h-12 mx-auto"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                        />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">Video Error</h3>
-                    <p className="text-sm text-gray-300 mb-4">{videoError}</p>
-                    <button
-                      onClick={() => window.location.reload()}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm"
-                    >
-                      Retry
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </motion.div>
 
-        {/* Status Indicator for Development */}
+        {/* Simple Status Indicator for Development */}
         {process.env.NODE_ENV === "development" && (
           <motion.div variants={itemVariants} className="mt-4 text-center">
-            <div className="text-green-400 text-xs flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              Video preloaded and ready - No loading states needed!
+            <div className="text-sm flex items-center justify-center gap-4 flex-wrap">
+              <div
+                className={`flex items-center gap-2 ${
+                  isVideoReady ? "text-green-400" : "text-yellow-400"
+                }`}
+              >
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    isVideoReady ? "bg-green-400" : "bg-yellow-400"
+                  } animate-pulse`}
+                ></div>
+                Video Ready: {isVideoReady ? "Yes" : "No"}
+              </div>
+              <div
+                className={`flex items-center gap-2 ${
+                  timeoutReached ? "text-orange-400" : "text-gray-400"
+                }`}
+              >
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    timeoutReached ? "bg-orange-400" : "bg-gray-400"
+                  }`}
+                ></div>
+                Timeout: {timeoutReached ? "Yes" : "No"}
+              </div>
+              <div
+                className={`flex items-center gap-2 ${
+                  continuePreloading ? "text-blue-400" : "text-gray-400"
+                }`}
+              >
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    continuePreloading
+                      ? "bg-blue-400 animate-pulse"
+                      : "bg-gray-400"
+                  }`}
+                ></div>
+                Background: {continuePreloading ? "Loading" : "Idle"}
+              </div>
             </div>
           </motion.div>
         )}

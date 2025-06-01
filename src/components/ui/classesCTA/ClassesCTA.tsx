@@ -50,7 +50,7 @@ const ClassesCTA = () => {
     module2: "MÓDULO PRÁCTICO",
     module3: "CIERRES DE VENTAS",
     video_url:
-      "https://firebasestorage.googleapis.com/v0/b/edicion-persuasiva.firebasestorage.app/o/public%2Fvideos%2FheroVideo.mp4?alt=media&token=4e7fac54-fbbe-48c5-8ba6-d562219f487a",
+      "https://firebasestorage.googleapis.com/v0/b/edicion-persuasiva.firebasestorage.app/o/public%2Fvideos%2FheroVideoCompressed.mp4?alt=media&token=38d812a1-fece-46c3-805b-8980b8aa0bad",
     poster_url: "/image/hero-poster.jpg",
     cta_button: "Deseo acceder hoy",
     cta_url: "join",
