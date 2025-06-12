@@ -25,8 +25,12 @@ import {
 } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import Header from "@/components/ui/Header";
-
+import JsonLd, { createBreadcrumbSchema } from "@/components/JsonLd";
 const HallOfFamePage = () => {
+  const breadcrumbItems = [
+    { name: "Inicio", url: "https://www.decodenext.dev" },
+    { name: "Hall of Fame", url: "https://www.decodenext.dev/hall-of-fame" },
+  ];
   const [activeTab, setActiveTab] = useState("weekly");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [submissions, setSubmissions] = useState<VideoSubmission[]>([]);
@@ -160,6 +164,7 @@ const HallOfFamePage = () => {
 
   return (
     <div className="min-h-screen bg-black text-white">
+      <JsonLd data={createBreadcrumbSchema(breadcrumbItems)} />
       <Header />
       <div className="container mx-auto pt-20 px-4 pb-16">
         <motion.div

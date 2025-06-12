@@ -9,7 +9,11 @@ import MentorSection from "@/components/ui/Mentor/Mentor";
 import EnhancedPreloader from "@/components/ui/Preloader/EnhancedPreloader";
 import MasterClassSection from "@/components/ui/MasterClass/MasterClass";
 import { useState, useEffect } from "react";
-
+import JsonLd, {
+  createOrganizationSchema,
+  createWebsiteSchema,
+  createCourseSchema,
+} from "@/components/JsonLd";
 export default function Home() {
   const [loading, setLoading] = useState(true);
   const [contentReady, setContentReady] = useState(false);
@@ -43,6 +47,9 @@ export default function Home() {
           contentReady ? "opacity-100" : "opacity-0"
         }`}
       >
+        <JsonLd data={createOrganizationSchema()} />
+        <JsonLd data={createWebsiteSchema()} />
+        <JsonLd data={createCourseSchema()} />
         <HeroSection />
         <TestimonialsSection />
         <BenefitsSection />
