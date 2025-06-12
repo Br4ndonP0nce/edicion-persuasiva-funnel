@@ -487,14 +487,17 @@ const TypeformQuiz: React.FC = () => {
 
           const trimmed = email.trim();
           if (!trimmed.includes("@")) {
-            return { state: "incomplete", message: "Falta el símbolo @" };
+            return {
+              state: "incomplete",
+              message: "Formato de correo inválido",
+            };
           }
 
           const parts = trimmed.split("@");
           if (parts.length !== 2) {
             return {
               state: "invalid",
-              message: "Solo debe haber un símbolo @",
+              message: "Formato de correo inválido",
             };
           }
 
@@ -502,21 +505,21 @@ const TypeformQuiz: React.FC = () => {
           if (!localPart) {
             return {
               state: "incomplete",
-              message: "Falta la parte antes del @",
+              message: "",
             };
           }
 
           if (!domainPart) {
             return {
               state: "incomplete",
-              message: "Falta el dominio después del @",
+              message: "",
             };
           }
 
           if (!domainPart.includes(".")) {
             return {
               state: "incomplete",
-              message: "El dominio necesita un punto (ej: .com, .org)",
+              message: "",
             };
           }
 
@@ -525,15 +528,14 @@ const TypeformQuiz: React.FC = () => {
           if (!tld || tld.length < 2) {
             return {
               state: "incomplete",
-              message:
-                "La extensión del dominio debe tener al menos 2 caracteres",
+              message: "",
             };
           }
 
           if (/^\d+$/.test(tld)) {
             return {
               state: "invalid",
-              message: "La extensión del dominio no puede ser solo números",
+              message: "",
             };
           }
 
@@ -704,22 +706,20 @@ const TypeformQuiz: React.FC = () => {
                       <span className="text-green-400">✅ Número válido</span>
                     ) : nationalNumber.length > 0 ? (
                       <span>
-                        Longitud: {nationalNumber.length}/
+                        {nationalNumber.length}/
                         {currentCountryValidation.minLength}
                         {currentCountryValidation.minLength !==
                         currentCountryValidation.maxLength
                           ? `-${currentCountryValidation.maxLength}`
                           : ""}{" "}
-                        dígitos móvil
                       </span>
                     ) : (
                       <span>
-                        Ingrese {currentCountryValidation.minLength}
+                        {currentCountryValidation.minLength}
                         {currentCountryValidation.minLength !==
                         currentCountryValidation.maxLength
                           ? `-${currentCountryValidation.maxLength}`
                           : ""}{" "}
-                        dígitos móvil
                       </span>
                     )}
                   </>
