@@ -460,6 +460,24 @@ const TypeformQuiz: React.FC = () => {
 
     switch (question.type) {
       case "text":
+        return (
+          <div className="w-full">
+            <input
+              ref={inputRef}
+              type="text"
+              value={answers[question.id] || ""}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              className="w-full bg-transparent border-b-2 border-white/30 focus:border-white py-2 px-1 text-lg outline-none text-white transition-colors"
+              placeholder={
+                question.id === "name"
+                  ? "Tu nombre completo"
+                  : "Escribe tu respuesta"
+              }
+            />
+          </div>
+        );
+
       case "email":
         const emailValue = answers[question.id] || "";
 
@@ -575,6 +593,7 @@ const TypeformQuiz: React.FC = () => {
         );
 
       case "phone":
+        // ... rest of the phone case remains the same
         const phoneValue = answers[question.id] || "";
         // Extract just the national number (without country code)
         const nationalNumber = phoneValue.includes(selectedCode)
