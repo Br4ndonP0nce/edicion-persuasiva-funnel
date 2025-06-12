@@ -1,4 +1,4 @@
-// src/components/ui/Hero/HeroSimpleTimeout.tsx
+// src/components/ui/Hero/Hero.tsx - Simplified Autoplay Version
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -8,7 +8,6 @@ import { useVideoPreload } from "@/contexts/VideoPreloadContent";
 import { getContentBySection } from "@/lib/firebase/db";
 
 const HeroSection = () => {
-  // Get preloaded video context
   const {
     isVideoReady,
     getPreloadedVideo,
@@ -17,20 +16,21 @@ const HeroSection = () => {
     continuePreloading,
   } = useVideoPreload();
 
-  // Video player state (same as your original)
+  // Video player state
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [progressPercentage, setProgressPercentage] = useState(0);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(true); // Control overlay visibility
 
-  // Local video ref for the visible player
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Content state from Firebase (same as your original)
+  // Content state from Firebase
   const [content, setContent] = useState({
     subtitle: "Para editores que quieran lograr más y cobrar mucho más",
     headline:
@@ -45,10 +45,9 @@ const HeroSection = () => {
     cta_url: "join",
   });
 
-  // Loading state for content
   const [isContentLoading, setIsContentLoading] = useState(true);
 
-  // Fetch content from Firebase (same as your original)
+  // Fetch content from Firebase
   useEffect(() => {
     const fetchContent = async () => {
       try {
@@ -76,17 +75,16 @@ const HeroSection = () => {
     fetchContent();
   }, []);
 
-  // SIMPLIFIED video setup - closer to your original working code
+  // SIMPLIFIED: Use preloaded video if available, otherwise direct source
   useEffect(() => {
     if (!videoRef.current || !content.video_url) return;
 
     const video = videoRef.current;
 
-    // Simple check: use preloaded video if ready, otherwise set source directly
     if (isVideoReady) {
       const preloadedVideo = getPreloadedVideo();
       if (preloadedVideo && preloadedVideo.src) {
-        console.log("🔄 Using preloaded video");
+        console.log("🔄 Using preloaded video for autoplay");
         video.src = preloadedVideo.src;
         video.currentTime = preloadedVideo.currentTime || 0;
 
@@ -94,35 +92,73 @@ const HeroSection = () => {
           setDuration(preloadedVideo.duration);
         }
       }
-    } else if (timeoutReached || videoError) {
-      // Timeout reached or error occurred - use direct video loading (your original approach)
-      console.log("⚠️ Using direct video loading (timeout/error fallback)");
+    } else {
+      // Direct video loading - this will work with HTML autoplay attributes
+      console.log("⚡ Using direct video loading with autoplay");
       video.src = content.video_url;
-      video.preload = "metadata";
     }
 
-    // Standard event listeners (same as your original)
     const handleLoadedMetadata = () => {
       if (video.duration > 0) {
         setDuration(video.duration);
       }
     };
 
-    video.addEventListener("loadedmetadata", handleLoadedMetadata);
-    return () =>
-      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
-  }, [
-    isVideoReady,
-    getPreloadedVideo,
-    timeoutReached,
-    videoError,
-    content.video_url,
-  ]);
+    const handlePlay = () => {
+      console.log("✅ Video started playing (autoplay or manual)");
+      setIsPlaying(true);
+      setShowOverlay(false); // Hide overlay when playing
+    };
 
-  // Simple availability check - video is available if preload is ready OR timeout reached
+    const handlePause = () => {
+      console.log("⏸️ Video paused");
+      setIsPlaying(false);
+      setShowOverlay(true); // Show overlay when paused
+    };
+
+    const handleEnded = () => {
+      console.log("🔄 Video ended");
+      setIsPlaying(false);
+      setShowOverlay(true); // Show overlay when ended
+    };
+
+    // Add event listeners
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("play", handlePlay);
+    video.addEventListener("pause", handlePause);
+    video.addEventListener("ended", handleEnded);
+
+    return () => {
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("play", handlePlay);
+      video.removeEventListener("pause", handlePause);
+      video.removeEventListener("ended", handleEnded);
+    };
+  }, [isVideoReady, getPreloadedVideo, content.video_url]);
+
+  // Track user interaction for unmuting
+  useEffect(() => {
+    const handleUserInteraction = () => {
+      setHasUserInteracted(true);
+      document.removeEventListener("click", handleUserInteraction);
+      document.removeEventListener("keydown", handleUserInteraction);
+      document.removeEventListener("touchstart", handleUserInteraction);
+    };
+
+    document.addEventListener("click", handleUserInteraction);
+    document.addEventListener("keydown", handleUserInteraction);
+    document.addEventListener("touchstart", handleUserInteraction);
+
+    return () => {
+      document.removeEventListener("click", handleUserInteraction);
+      document.removeEventListener("keydown", handleUserInteraction);
+      document.removeEventListener("touchstart", handleUserInteraction);
+    };
+  }, []);
+
   const isVideoAvailable = isVideoReady || timeoutReached || videoError;
 
-  // Your original video control functions (unchanged)
+  // Video control functions
   const formatTime = (timeInSeconds: number) => {
     const minutes = Math.floor(timeInSeconds / 60);
     const seconds = Math.floor(timeInSeconds % 60);
@@ -131,33 +167,26 @@ const HeroSection = () => {
       .padStart(2, "0")}`;
   };
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     if (!videoRef.current) return;
 
+    const video = videoRef.current;
+
     if (isPlaying) {
-      videoRef.current.pause();
+      video.pause();
     } else {
-      // Simple check before playing
-      if (!videoRef.current.src) {
-        videoRef.current.src = content.video_url;
-        videoRef.current.load();
-        return;
+      // If this is user-initiated play and they've interacted, unmute the video
+      if (hasUserInteracted && isMuted) {
+        video.muted = false;
+        setIsMuted(false);
       }
 
-      const playPromise = videoRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((error) => {
-          console.error("Error playing video:", error);
-          // If play fails, try reloading the video source
-          if (videoRef.current) {
-            videoRef.current.src = content.video_url;
-            videoRef.current.load();
-          }
-        });
+      try {
+        await video.play();
+      } catch (error) {
+        console.error("Error playing video:", error);
       }
     }
-
-    setIsPlaying(!isPlaying);
   };
 
   const handleTimeUpdate = () => {
@@ -229,7 +258,7 @@ const HeroSection = () => {
     };
   }, []);
 
-  // Animation variants (same as your original)
+  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -250,7 +279,6 @@ const HeroSection = () => {
     },
   };
 
-  // Show loading state if content is still loading
   if (isContentLoading) {
     return (
       <div className="bg-black min-h-[600px] text-white overflow-hidden p-6 relative mt-8 flex justify-center items-center">
@@ -317,20 +345,23 @@ const HeroSection = () => {
           </div>
         </motion.div>
 
-        {/* Video Player - Simplified */}
+        {/* Video Player - SIMPLIFIED WITH DIRECT AUTOPLAY */}
         <motion.div variants={itemVariants}>
           <div
             className="mx-auto rounded-lg overflow-hidden border border-gray-800 shadow-2xl max-w-3xl"
             ref={containerRef}
           >
             <div className="relative">
-              {/* Video Element - Keep it simple */}
+              {/* Video Element - SIMPLE AUTOPLAY APPROACH */}
               <video
                 ref={videoRef}
                 className="w-full aspect-video bg-black"
                 poster={content.poster_url}
                 onTimeUpdate={handleTimeUpdate}
-                onEnded={() => setIsPlaying(false)}
+                // KEY: Direct HTML autoplay attributes (like your working example)
+                autoPlay
+                loop
+                muted
                 playsInline
                 webkit-playsinline="true"
               >
@@ -338,8 +369,8 @@ const HeroSection = () => {
                 Your browser does not support the video tag.
               </video>
 
-              {/* Play Overlay - Show when video is available and not playing */}
-              {isVideoAvailable && !isPlaying && (
+              {/* Play Overlay - Only show when explicitly needed */}
+              {showOverlay && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
                   <div
                     className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-wider mb-4"
@@ -376,11 +407,6 @@ const HeroSection = () => {
                     <div className="absolute inset-0 rounded-full border-2 border-purple-400 animate-ping opacity-20"></div>
                   </motion.button>
 
-                  {/* Simple background loading indicator */}
-                  {timeoutReached && !isVideoReady && continuePreloading && (
-                    <div className="absolute bottom-16 left-0 right-0 flex justify-center"></div>
-                  )}
-
                   {/* Subtitle */}
                   <div className="absolute bottom-8 left-0 right-0 flex justify-center">
                     <div className="text-white/80 text-xs tracking-wider">
@@ -390,7 +416,109 @@ const HeroSection = () => {
                 </div>
               )}
 
-              {/* Video Controls - Only show when playing (same as your original) */}
+              {/* BIG AUDIO ACTIVATION OVERLAY - Show when video is playing but muted */}
+              {isPlaying && isMuted && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-10"
+                  onClick={() => {
+                    if (videoRef.current) {
+                      videoRef.current.muted = false;
+                      setIsMuted(false);
+                    }
+                  }}
+                >
+                  <div className="text-center cursor-pointer">
+                    {/* Main Message */}
+                    <motion.div
+                      animate={{
+                        scale: [1, 1.05, 1],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                      className="bg-purple-600/90 border-2 border-purple-400 rounded-2xl px-8 py-6 mb-4 shadow-2xl"
+                    >
+                      <div className="flex items-center justify-center mb-3">
+                        <svg
+                          className="w-12 h-12 text-white mr-3"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                          />
+                        </svg>
+                        <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
+                          🔊
+                        </div>
+                      </div>
+
+                      <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">
+                        CLICK PARA ACTIVAR
+                      </h3>
+                      <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-4">
+                        EL AUDIO
+                      </h3>
+
+                      <p className="text-white/90 text-lg">
+                        Toca en cualquier lugar para escuchar
+                      </p>
+                    </motion.div>
+
+                    {/* Visual Click Indicator */}
+                    <motion.div
+                      animate={{
+                        opacity: [0.5, 1, 0.5],
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                      className="flex items-center justify-center text-white/80"
+                    >
+                      <svg
+                        className="w-8 h-8 mr-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"
+                        />
+                      </svg>
+                      <span className="text-xl font-semibold">Toca aquí</span>
+                    </motion.div>
+
+                    {/* Skip Option */}
+                    <motion.button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Just hide the overlay without enabling audio
+                        setHasUserInteracted(true);
+                      }}
+                      className="mt-6 text-white/60 hover:text-white/90 text-sm underline transition-colors"
+                      whileHover={{ scale: 1.05 }}
+                    >
+                      Continuar sin audio
+                    </motion.button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Video Controls - Show when playing */}
               {isPlaying && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -566,7 +694,7 @@ const HeroSection = () => {
           </div>
         </motion.div>
 
-        {/* Simple Status Indicator for Development */}
+        {/* Status Indicator for Development */}
         {process.env.NODE_ENV === "development" && (
           <motion.div variants={itemVariants} className="mt-4 text-center">
             <div className="text-sm flex items-center justify-center gap-4 flex-wrap">
@@ -584,29 +712,27 @@ const HeroSection = () => {
               </div>
               <div
                 className={`flex items-center gap-2 ${
-                  timeoutReached ? "text-orange-400" : "text-gray-400"
+                  isPlaying ? "text-green-400" : "text-gray-400"
                 }`}
               >
                 <div
                   className={`w-2 h-2 rounded-full ${
-                    timeoutReached ? "bg-orange-400" : "bg-gray-400"
+                    isPlaying ? "bg-green-400" : "bg-gray-400"
                   }`}
                 ></div>
-                Timeout: {timeoutReached ? "Yes" : "No"}
+                Playing: {isPlaying ? "Yes" : "No"}
               </div>
               <div
                 className={`flex items-center gap-2 ${
-                  continuePreloading ? "text-blue-400" : "text-gray-400"
+                  showOverlay ? "text-orange-400" : "text-green-400"
                 }`}
               >
                 <div
                   className={`w-2 h-2 rounded-full ${
-                    continuePreloading
-                      ? "bg-blue-400 animate-pulse"
-                      : "bg-gray-400"
+                    showOverlay ? "bg-orange-400" : "bg-green-400"
                   }`}
                 ></div>
-                Background: {continuePreloading ? "Loading" : "Idle"}
+                Overlay: {showOverlay ? "Visible" : "Hidden"}
               </div>
             </div>
           </motion.div>
