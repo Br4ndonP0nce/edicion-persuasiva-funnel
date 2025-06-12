@@ -462,10 +462,10 @@ const HeroSection = () => {
                         </div>
                       </div>
 
-                      <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">
+                      <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">
                         CLICK PARA ACTIVAR
                       </h3>
-                      <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">
+                      <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-4">
                         EL AUDIO
                       </h3>
 

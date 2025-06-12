@@ -167,7 +167,7 @@ const EnhancedPreloader: React.FC<EnhancedPreloaderProps> = ({
     if (timeoutReached) return "Finalizando carga...";
     if (isPreloading && !timeoutReached)
       return `${Math.round(displayProgress)}%`;
-    if (isVideoReady) return enableAutoplay ? "Listo para reproducir" : "Listo";
+    if (isVideoReady) return enableAutoplay ? "" : "Listo";
     return `Cargando... ${Math.round(displayProgress)}%`;
   };
 
@@ -261,7 +261,6 @@ const EnhancedPreloader: React.FC<EnhancedPreloaderProps> = ({
                     clipRule="evenodd"
                   />
                 </svg>
-                Reproducción automática habilitada
               </motion.div>
             )}
 
