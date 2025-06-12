@@ -15,22 +15,24 @@ interface VideoPreloadState {
   videoUrl: string | null;
   progress: number;
   error: string | null;
-  // NEW: Timeout-related state
   timeoutReached: boolean;
   continuePreloading: boolean;
+  shouldAutoplay: boolean; // NEW: Track if autoplay should happen
 }
 
 interface PreloadOptions {
-  maxWaitTime?: number; // Maximum time to wait before proceeding (default: 3000ms)
-  continueInBackground?: boolean; // Whether to continue preloading after timeout (default: true)
-  onTimeout?: () => void; // Callback when timeout is reached
-  onVideoReady?: () => void; // Callback when video is fully ready
+  maxWaitTime?: number;
+  continueInBackground?: boolean;
+  autoplay?: boolean; // NEW: Enable autoplay when ready
+  onTimeout?: () => void;
+  onVideoReady?: (shouldAutoplay: boolean) => void; // Updated callback
 }
 
 interface VideoPreloadContextType extends VideoPreloadState {
   startPreload: (videoUrl: string, options?: PreloadOptions) => Promise<void>;
   getPreloadedVideo: () => HTMLVideoElement | null;
-  resetPreload: () => void; // NEW: Reset preload state
+  resetPreload: () => void;
+  setAutoplayHandled: () => void; // NEW: Mark autoplay as handled
 }
 
 const VideoPreloadContext = createContext<VideoPreloadContextType | null>(null);
@@ -58,13 +60,13 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
     error: null,
     timeoutReached: false,
     continuePreloading: false,
+    shouldAutoplay: false,
   });
 
   const hiddenVideoRef = useRef<HTMLVideoElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const preloadOptionsRef = useRef<PreloadOptions>({});
 
-  // NEW: Reset preload state
   const resetPreload = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -79,7 +81,12 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
       error: null,
       timeoutReached: false,
       continuePreloading: false,
+      shouldAutoplay: false,
     });
+  }, []);
+
+  const setAutoplayHandled = useCallback(() => {
+    setState((prev) => ({ ...prev, shouldAutoplay: false }));
   }, []);
 
   const startPreload = useCallback(
@@ -87,14 +94,15 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
       const {
         maxWaitTime = 3000,
         continueInBackground = true,
+        autoplay = false, // NEW: Default to false for safety
         onTimeout,
         onVideoReady,
       } = options;
 
-      // Store options for later use
       preloadOptionsRef.current = {
         maxWaitTime,
         continueInBackground,
+        autoplay,
         onTimeout,
         onVideoReady,
       };
@@ -103,10 +111,11 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
         "🎬 Starting video preload:",
         videoUrl,
         "with timeout:",
-        maxWaitTime + "ms"
+        maxWaitTime + "ms",
+        "autoplay:",
+        autoplay
       );
 
-      // Clear any existing timeout
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
@@ -120,6 +129,7 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
         error: null,
         timeoutReached: false,
         continuePreloading: false,
+        shouldAutoplay: autoplay,
       }));
 
       return new Promise((resolve, reject) => {
@@ -131,12 +141,12 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
             ...prev,
             error: errorMsg,
             isPreloading: false,
+            shouldAutoplay: false,
           }));
           reject(new Error(errorMsg));
           return;
         }
 
-        // NEW: Set up timeout to proceed anyway after maxWaitTime
         timeoutRef.current = setTimeout(() => {
           console.log("⏰ Video preload timeout reached, proceeding anyway");
 
@@ -144,17 +154,15 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
             ...prev,
             timeoutReached: true,
             continuePreloading: continueInBackground && !prev.isVideoReady,
-            isPreloading: false, // Stop showing loading state
+            isPreloading: false,
+            // Keep autoplay flag if it was requested
+            shouldAutoplay: autoplay,
           }));
 
-          // Call timeout callback if provided
           onTimeout?.();
-
-          // Resolve the promise to allow content to show
           resolve();
         }, maxWaitTime);
 
-        // Set up event listeners
         const handleLoadStart = () => {
           console.log("📥 Video load started");
           setState((prev) => ({ ...prev, progress: 10 }));
@@ -165,7 +173,7 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
             const buffered = video.buffered.end(0);
             const duration = video.duration;
             if (duration > 0) {
-              const progress = Math.min(90, (buffered / duration) * 90); // Max 90% during preload
+              const progress = Math.min(90, (buffered / duration) * 90);
               setState((prev) => ({ ...prev, progress }));
               console.log(`📊 Video buffering: ${progress.toFixed(1)}%`);
             }
@@ -180,7 +188,6 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
         const handleCanPlayThrough = () => {
           console.log("🎯 Video fully preloaded and ready");
 
-          // Clear timeout since video is ready
           if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
@@ -191,7 +198,9 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
             isVideoReady: true,
             isPreloading: false,
             progress: 100,
-            continuePreloading: false, // Stop background loading since we're ready
+            continuePreloading: false,
+            // Preserve autoplay intention
+            shouldAutoplay: autoplay,
           }));
 
           // Clean up event listeners
@@ -201,8 +210,8 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
           video.removeEventListener("canplaythrough", handleCanPlayThrough);
           video.removeEventListener("error", handleError);
 
-          // Call ready callback if provided
-          onVideoReady?.();
+          // Call ready callback with autoplay info
+          onVideoReady?.(autoplay);
 
           resolve();
         };
@@ -210,7 +219,6 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
         const handleError = (e: Event) => {
           console.error("❌ Video preload error:", e);
 
-          // Clear timeout on error
           if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
@@ -223,6 +231,7 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
             isPreloading: false,
             progress: 0,
             continuePreloading: false,
+            shouldAutoplay: false, // Reset autoplay on error
           }));
 
           // Clean up event listeners
@@ -232,7 +241,6 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
           video.removeEventListener("canplaythrough", handleCanPlayThrough);
           video.removeEventListener("error", handleError);
 
-          // On error, resolve anyway to show content (don't block the UI)
           console.log("🔄 Resolving despite error to avoid blocking UI");
           resolve();
         };
@@ -262,12 +270,12 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
     startPreload,
     getPreloadedVideo,
     resetPreload,
+    setAutoplayHandled,
   };
 
   return (
     <VideoPreloadContext.Provider value={contextValue}>
       {children}
-      {/* Hidden video element for preloading */}
       <video
         ref={hiddenVideoRef}
         style={{

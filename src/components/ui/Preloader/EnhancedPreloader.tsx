@@ -11,6 +11,7 @@ interface EnhancedPreloaderProps {
   minDuration?: number; // Minimum time to show preloader (for branding)
   maxWaitTime?: number; // Maximum time to wait for video
   continueInBackground?: boolean; // Continue preloading after timeout
+  enableAutoplay?: boolean; // NEW: Enable autoplay when video is ready
 }
 
 const EnhancedPreloader: React.FC<EnhancedPreloaderProps> = ({
@@ -19,11 +20,13 @@ const EnhancedPreloader: React.FC<EnhancedPreloaderProps> = ({
   minDuration = 1500, // Reduced for better UX
   maxWaitTime = 3000,
   continueInBackground = true,
+  enableAutoplay = false, // NEW: Default to false for safety
 }) => {
   const [loading, setLoading] = useState(true);
   const [displayProgress, setDisplayProgress] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [canComplete, setCanComplete] = useState(false);
+  const [autoplayConfigured, setAutoplayConfigured] = useState(false);
 
   const {
     startPreload,
@@ -50,24 +53,40 @@ const EnhancedPreloader: React.FC<EnhancedPreloaderProps> = ({
     return () => clearInterval(timer);
   }, [minDuration]);
 
-  // Start video preload on mount with timeout configuration
+  // Start video preload on mount with autoplay configuration
   useEffect(() => {
-    console.log("🚀 Enhanced Preloader starting video preload with timeout");
+    if (autoplayConfigured) return; // Prevent multiple calls
+
+    console.log("🚀 Enhanced Preloader starting video preload", {
+      enableAutoplay,
+      maxWaitTime,
+      continueInBackground,
+    });
 
     startPreload(videoUrl, {
       maxWaitTime,
       continueInBackground,
+      autoplay: enableAutoplay, // NEW: Pass autoplay configuration
       onTimeout: () => {
         console.log("⏰ Video preload timeout in Enhanced Preloader");
       },
-      onVideoReady: () => {
-        console.log("✅ Video ready in Enhanced Preloader");
+      onVideoReady: (shouldAutoplay) => {
+        console.log("✅ Video ready in Enhanced Preloader", { shouldAutoplay });
       },
     }).catch((error: unknown) => {
       console.error("Failed to preload video:", error);
       // Don't block on error - the timeout will handle it
     });
-  }, [videoUrl, startPreload, maxWaitTime, continueInBackground]);
+
+    setAutoplayConfigured(true);
+  }, [
+    videoUrl,
+    startPreload,
+    maxWaitTime,
+    continueInBackground,
+    enableAutoplay,
+    autoplayConfigured,
+  ]);
 
   // Calculate display progress (combination of time and video progress)
   useEffect(() => {
@@ -103,6 +122,7 @@ const EnhancedPreloader: React.FC<EnhancedPreloaderProps> = ({
         timeoutReached,
         videoError,
         displayProgress,
+        enableAutoplay,
       });
 
       // Small delay for smooth transition
@@ -118,6 +138,7 @@ const EnhancedPreloader: React.FC<EnhancedPreloaderProps> = ({
     videoError,
     displayProgress,
     onComplete,
+    enableAutoplay,
   ]);
 
   // Generate grid items with staggered animation
@@ -146,7 +167,7 @@ const EnhancedPreloader: React.FC<EnhancedPreloaderProps> = ({
     if (timeoutReached) return "Finalizando carga...";
     if (isPreloading && !timeoutReached)
       return `${Math.round(displayProgress)}%`;
-    if (isVideoReady) return "";
+    if (isVideoReady) return enableAutoplay ? "" : "Listo";
     return `Cargando... ${Math.round(displayProgress)}%`;
   };
 
@@ -154,6 +175,7 @@ const EnhancedPreloader: React.FC<EnhancedPreloaderProps> = ({
   const getProgressBarColor = () => {
     if (videoError) return "from-red-600 to-red-400";
     if (timeoutReached) return "from-green-600 to-green-400";
+    if (isVideoReady && enableAutoplay) return "from-blue-600 to-blue-400";
     return "from-purple-600 to-purple-400";
   };
 
@@ -181,6 +203,8 @@ const EnhancedPreloader: React.FC<EnhancedPreloaderProps> = ({
               animate={{
                 color: timeoutReached
                   ? ["#16a34a", "#ffffff", "#16a34a"] // Green when timeout reached
+                  : isVideoReady && enableAutoplay
+                  ? ["#2563eb", "#ffffff", "#2563eb"] // Blue when ready for autoplay
                   : ["#9333ea", "#ffffff", "#9333ea"], // Purple normally
               }}
               transition={{
@@ -208,6 +232,8 @@ const EnhancedPreloader: React.FC<EnhancedPreloaderProps> = ({
                   ? "text-green-300"
                   : videoError
                   ? "text-red-300"
+                  : isVideoReady && enableAutoplay
+                  ? "text-blue-300"
                   : "text-purple-300"
               }`}
               animate={{ opacity: [0.7, 1, 0.7] }}
@@ -215,6 +241,28 @@ const EnhancedPreloader: React.FC<EnhancedPreloaderProps> = ({
             >
               {getStatusMessage()}
             </motion.div>
+
+            {/* Autoplay indicator */}
+            {enableAutoplay && isVideoReady && (
+              <motion.div
+                className="mt-2 text-xs text-blue-400 flex items-center justify-center gap-1"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                <svg
+                  className="w-3 h-3"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </motion.div>
+            )}
 
             {/* Background preloading indicator */}
             {timeoutReached && continuePreloading && !isVideoReady && (
@@ -237,6 +285,7 @@ const EnhancedPreloader: React.FC<EnhancedPreloaderProps> = ({
                 <div>
                   Continue Preloading: {continuePreloading ? "✅" : "❌"}
                 </div>
+                <div>Autoplay Enabled: {enableAutoplay ? "✅" : "❌"}</div>
                 <div>
                   Time: {timeElapsed}ms / {minDuration}ms
                 </div>
