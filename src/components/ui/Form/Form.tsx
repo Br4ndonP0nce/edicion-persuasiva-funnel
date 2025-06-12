@@ -826,7 +826,9 @@ const TypeformQuiz: React.FC = () => {
           {answers.phone && (
             <div className="mb-4">
               <a
-                href={generateWhatsAppLink(answers.phone)}
+                href={generateWhatsAppLink(
+                  `Hola! soy ${answers.name} Acabo de completar el formulario de Edición Persuasiva y me gustaría que revisen mi solicitud.`
+                )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-md transition-colors mb-3 w-full justify-center"
