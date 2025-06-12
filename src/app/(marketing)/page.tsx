@@ -19,8 +19,9 @@ export default function Home() {
   const [contentReady, setContentReady] = useState(false);
 
   // Main video URL - should match what's in Hero section
+  //https://firebasestorage.googleapis.com/v0/b/edicion-persuasiva.firebasestorage.app/o/public%2Fvideos%2FheroVideoCompressed.mp4?alt=media&token=38d812a1-fece-46c3-805b-8980b8aa0bad
   const mainVideoUrl =
-    "https://firebasestorage.googleapis.com/v0/b/edicion-persuasiva.firebasestorage.app/o/public%2Fvideos%2FheroVideoCompressed.mp4?alt=media&token=38d812a1-fece-46c3-805b-8980b8aa0bad";
+    "https://d29v4wmhmft6s2.cloudfront.net/landingVideos/heroVideoCompressed.mp4";
 
   const handlePreloadComplete = () => {
     console.log("🎉 Preloader completed - video should be ready");
