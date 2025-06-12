@@ -540,11 +540,13 @@ export const validateEmail = (email: string): boolean => {
   /**
    * Generates WhatsApp link with pre-filled message
    */
-  export const generateWhatsAppLink = (message: string = "Hola, acabo de aplicar a Edición Persuasiva"): string => {
-    const salesWhatsAppLink = "https://wa.me/message/FA3Q727EL52ZC1";
+  export const generateWhatsAppLink = (
+    message: string = "Hola, acabo de aplicar a Edición Persuasiva"
+  ): string => {
+    const teamWhatsAppNumber = "5213336621828"; // Team's WhatsApp number
     const encodedMessage = encodeURIComponent(message);
     
-    return `${salesWhatsAppLink}?text=${encodedMessage}`;
+    return `https://wa.me/${teamWhatsAppNumber}?text=${encodedMessage}`;
   };
   
   /**
