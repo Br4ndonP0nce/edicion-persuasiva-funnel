@@ -25,7 +25,26 @@ import {
   Phone,
   Calendar,
   Trash2,
+  MessageCircle,
 } from "lucide-react";
+
+// Helper function to generate WhatsApp link
+const generateWhatsAppLink = (phoneNumber: string): string => {
+  // Clean the phone number - remove all non-digit characters except +
+  const cleanNumber = phoneNumber.replace(/[^\d+]/g, "");
+
+  // Remove leading + if present and any spaces or special characters
+  const whatsappNumber = cleanNumber.startsWith("+")
+    ? cleanNumber.substring(1)
+    : cleanNumber;
+
+  // Default message for lead contact
+  const message = encodeURIComponent(
+    "Hola! Te contactamos desde Edición Persuasiva sobre tu solicitud para acceder a nuestra formación. ¿Tienes unos minutos para conversar?"
+  );
+
+  return `https://wa.me/${whatsappNumber}?text=${message}`;
+};
 
 export default function LeadDetailsPage() {
   const params = useParams();
@@ -209,7 +228,7 @@ export default function LeadDetailsPage() {
                   )}
                 </div>
                 <div className="flex items-center">
-                  <Phone className="h-4 w-4 text-gray-500 mr-2" />
+                  <MessageCircle className="h-4 w-4 text-green-600 mr-2" />
                   {isEditing ? (
                     <input
                       type="tel"
@@ -223,9 +242,20 @@ export default function LeadDetailsPage() {
                       className="border rounded px-2 py-1 w-full"
                     />
                   ) : (
-                    <a href={`tel:${lead.phone}`} className="hover:underline">
-                      {lead.phone}
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-700">{lead.phone}</span>
+                      <a
+                        href={generateWhatsAppLink(lead.phone)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-green-600 hover:text-green-700 text-sm font-medium hover:underline"
+                        title="Contactar por WhatsApp"
+                      >
+                        <MessageCircle className="h-3 w-3" />
+                        WhatsApp
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
                   )}
                 </div>
               </div>
@@ -303,7 +333,19 @@ export default function LeadDetailsPage() {
               <div className="font-medium">{lead.investment}</div>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-between border-t pt-4">
+          <CardFooter className="flex flex-col gap-2 border-t pt-4">
+            {/* Quick WhatsApp Contact Button */}
+            <Button
+              variant="outline"
+              className="w-full text-green-600 hover:bg-green-50 hover:text-green-700 border-green-200"
+              onClick={() =>
+                window.open(generateWhatsAppLink(lead.phone), "_blank")
+              }
+            >
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Contactar por WhatsApp
+            </Button>
+
             <Button
               variant="outline"
               className="w-full text-red-600 hover:bg-red-50 hover:text-red-700"
