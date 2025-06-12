@@ -862,22 +862,6 @@ const TypeformQuiz: React.FC = () => {
         <div className="absolute bottom-1/3 -right-20 w-80 h-80 rounded-full bg-purple-600/10 blur-3xl"></div>
 
         {/* Subtle animated particles */}
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full bg-white/10 blur-sm"
-            style={{
-              width: `${Math.random() * 8 + 4}px`,
-              height: `${Math.random() * 8 + 4}px`,
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              animation: `float ${
-                Math.random() * 10 + 10
-              }s infinite ease-in-out`,
-              animationDelay: `${Math.random() * 5}s`,
-            }}
-          />
-        ))}
       </div>
 
       {/* Main container */}
