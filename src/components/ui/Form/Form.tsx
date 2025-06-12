@@ -5,6 +5,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { addLead } from "@/lib/firebase/db";
+import {
+  validateEmail,
+  validateName,
+  validatePhone,
+  generateWhatsAppLink,
+  COUNTRY_VALIDATIONS,
+  PhoneValidationResult,
+} from "@/lib/phoneValidationUtils";
 
 // Question types
 type QuestionType =
@@ -28,13 +36,6 @@ interface Question {
   description?: string;
   options?: Option[];
 }
-
-// Email validation regex - RFC 5322 compliant
-const EMAIL_REGEX =
-  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-
-// Phone validation - exactly 10 digits
-const PHONE_REGEX = /^\d{8,10}$/;
 
 // Define our form questions
 const questions: Question[] = [
@@ -147,234 +148,66 @@ const questions: Question[] = [
   },
 ];
 
-// Country codes for phone selection
-const countryCodes = [
-  // Latin America (alphabetical)
-  { code: "+1", country: "Antigua and Barbuda" },
-  { code: "+54", country: "Argentina" },
-  { code: "+297", country: "Aruba" },
-  { code: "+1", country: "Bahamas" },
-  { code: "+1", country: "Barbados" },
-  { code: "+501", country: "Belize" },
-  { code: "+591", country: "Bolivia" },
-  { code: "+55", country: "Brazil" },
-  { code: "+1", country: "British Virgin Islands" },
-  { code: "+1", country: "Cayman Islands" },
-  { code: "+56", country: "Chile" },
-  { code: "+57", country: "Colombia" },
-  { code: "+506", country: "Costa Rica" },
-  { code: "+53", country: "Cuba" },
-  { code: "+599", country: "Curaçao" },
-  { code: "+1", country: "Dominica" },
-  { code: "+1", country: "Dominican Republic" },
-  { code: "+593", country: "Ecuador" },
-  { code: "+503", country: "El Salvador" },
-  { code: "+594", country: "French Guiana" },
-  { code: "+1", country: "Grenada" },
-  { code: "+590", country: "Guadeloupe" },
-  { code: "+502", country: "Guatemala" },
-  { code: "+592", country: "Guyana" },
-  { code: "+509", country: "Haiti" },
-  { code: "+504", country: "Honduras" },
-  { code: "+1", country: "Jamaica" },
-  { code: "+596", country: "Martinique" },
-  { code: "+52", country: "Mexico" },
-  { code: "+599", country: "Netherlands Antilles" },
-  { code: "+505", country: "Nicaragua" },
-  { code: "+507", country: "Panama" },
-  { code: "+595", country: "Paraguay" },
-  { code: "+51", country: "Peru" },
-  { code: "+1", country: "Puerto Rico" },
-  { code: "+1", country: "Saint Kitts and Nevis" },
-  { code: "+1", country: "Saint Lucia" },
-  { code: "+1", country: "Saint Vincent and the Grenadines" },
-  { code: "+597", country: "Suriname" },
-  { code: "+1", country: "Trinidad and Tobago" },
-  { code: "+1", country: "Turks and Caicos Islands" },
-  { code: "+598", country: "Uruguay" },
-  { code: "+1", country: "US Virgin Islands" },
-  { code: "+58", country: "Venezuela" },
+// Generate country codes from COUNTRY_VALIDATIONS (single source of truth)
+const countryCodes = COUNTRY_VALIDATIONS.filter((c) => c.code !== "+999") // Exclude fallback
+  .sort((a, b) => {
+    // Prioritize Latin America and Caribbean
+    const latinAmericanCodes = [
+      "+52",
+      "+55",
+      "+54",
+      "+57",
+      "+56",
+      "+51",
+      "+58",
+      "+593",
+      "+591",
+      "+598",
+      "+595",
+      "+507",
+      "+503",
+      "+502",
+      "+504",
+      "+505",
+      "+53",
+      "+509",
+    ];
 
-  // Rest of the world (alphabetical)
-  { code: "+93", country: "Afghanistan" },
-  { code: "+355", country: "Albania" },
-  { code: "+213", country: "Algeria" },
-  { code: "+376", country: "Andorra" },
-  { code: "+244", country: "Angola" },
-  { code: "+61", country: "Australia" },
-  { code: "+43", country: "Austria" },
-  { code: "+994", country: "Azerbaijan" },
-  { code: "+973", country: "Bahrain" },
-  { code: "+880", country: "Bangladesh" },
-  { code: "+375", country: "Belarus" },
-  { code: "+32", country: "Belgium" },
-  { code: "+229", country: "Benin" },
-  { code: "+975", country: "Bhutan" },
-  { code: "+387", country: "Bosnia and Herzegovina" },
-  { code: "+267", country: "Botswana" },
-  { code: "+359", country: "Bulgaria" },
-  { code: "+226", country: "Burkina Faso" },
-  { code: "+257", country: "Burundi" },
-  { code: "+855", country: "Cambodia" },
-  { code: "+237", country: "Cameroon" },
-  { code: "+1", country: "Canada" },
-  { code: "+238", country: "Cape Verde" },
-  { code: "+236", country: "Central African Republic" },
-  { code: "+235", country: "Chad" },
-  { code: "+86", country: "China" },
-  { code: "+269", country: "Comoros" },
-  { code: "+242", country: "Congo" },
-  { code: "+682", country: "Cook Islands" },
-  { code: "+385", country: "Croatia" },
-  { code: "+357", country: "Cyprus" },
-  { code: "+420", country: "Czech Republic" },
-  { code: "+243", country: "Democratic Republic of Congo" },
-  { code: "+45", country: "Denmark" },
-  { code: "+253", country: "Djibouti" },
-  { code: "+20", country: "Egypt" },
-  { code: "+240", country: "Equatorial Guinea" },
-  { code: "+291", country: "Eritrea" },
-  { code: "+372", country: "Estonia" },
-  { code: "+251", country: "Ethiopia" },
-  { code: "+679", country: "Fiji" },
-  { code: "+358", country: "Finland" },
-  { code: "+33", country: "France" },
-  { code: "+241", country: "Gabon" },
-  { code: "+220", country: "Gambia" },
-  { code: "+995", country: "Georgia" },
-  { code: "+49", country: "Germany" },
-  { code: "+233", country: "Ghana" },
-  { code: "+30", country: "Greece" },
-  { code: "+299", country: "Greenland" },
-  { code: "+224", country: "Guinea" },
-  { code: "+245", country: "Guinea-Bissau" },
-  { code: "+36", country: "Hungary" },
-  { code: "+354", country: "Iceland" },
-  { code: "+91", country: "India" },
-  { code: "+62", country: "Indonesia" },
-  { code: "+98", country: "Iran" },
-  { code: "+964", country: "Iraq" },
-  { code: "+353", country: "Ireland" },
-  { code: "+972", country: "Israel" },
-  { code: "+39", country: "Italy" },
-  { code: "+225", country: "Ivory Coast" },
-  { code: "+81", country: "Japan" },
-  { code: "+962", country: "Jordan" },
-  { code: "+7", country: "Kazakhstan" },
-  { code: "+254", country: "Kenya" },
-  { code: "+686", country: "Kiribati" },
-  { code: "+965", country: "Kuwait" },
-  { code: "+996", country: "Kyrgyzstan" },
-  { code: "+856", country: "Laos" },
-  { code: "+371", country: "Latvia" },
-  { code: "+961", country: "Lebanon" },
-  { code: "+266", country: "Lesotho" },
-  { code: "+231", country: "Liberia" },
-  { code: "+218", country: "Libya" },
-  { code: "+423", country: "Liechtenstein" },
-  { code: "+370", country: "Lithuania" },
-  { code: "+352", country: "Luxembourg" },
-  { code: "+261", country: "Madagascar" },
-  { code: "+265", country: "Malawi" },
-  { code: "+60", country: "Malaysia" },
-  { code: "+960", country: "Maldives" },
-  { code: "+223", country: "Mali" },
-  { code: "+356", country: "Malta" },
-  { code: "+692", country: "Marshall Islands" },
-  { code: "+222", country: "Mauritania" },
-  { code: "+230", country: "Mauritius" },
-  { code: "+691", country: "Micronesia" },
-  { code: "+373", country: "Moldova" },
-  { code: "+377", country: "Monaco" },
-  { code: "+976", country: "Mongolia" },
-  { code: "+382", country: "Montenegro" },
-  { code: "+212", country: "Morocco" },
-  { code: "+258", country: "Mozambique" },
-  { code: "+95", country: "Myanmar" },
-  { code: "+264", country: "Namibia" },
-  { code: "+674", country: "Nauru" },
-  { code: "+977", country: "Nepal" },
-  { code: "+31", country: "Netherlands" },
-  { code: "+64", country: "New Zealand" },
-  { code: "+227", country: "Niger" },
-  { code: "+234", country: "Nigeria" },
-  { code: "+683", country: "Niue" },
-  { code: "+850", country: "North Korea" },
-  { code: "+389", country: "North Macedonia" },
-  { code: "+47", country: "Norway" },
-  { code: "+968", country: "Oman" },
-  { code: "+92", country: "Pakistan" },
-  { code: "+680", country: "Palau" },
-  { code: "+970", country: "Palestine" },
-  { code: "+675", country: "Papua New Guinea" },
-  { code: "+63", country: "Philippines" },
-  { code: "+48", country: "Poland" },
-  { code: "+351", country: "Portugal" },
-  { code: "+974", country: "Qatar" },
-  { code: "+40", country: "Romania" },
-  { code: "+7", country: "Russia" },
-  { code: "+250", country: "Rwanda" },
-  { code: "+685", country: "Samoa" },
-  { code: "+378", country: "San Marino" },
-  { code: "+239", country: "São Tomé and Príncipe" },
-  { code: "+966", country: "Saudi Arabia" },
-  { code: "+221", country: "Senegal" },
-  { code: "+381", country: "Serbia" },
-  { code: "+248", country: "Seychelles" },
-  { code: "+232", country: "Sierra Leone" },
-  { code: "+65", country: "Singapore" },
-  { code: "+421", country: "Slovakia" },
-  { code: "+386", country: "Slovenia" },
-  { code: "+677", country: "Solomon Islands" },
-  { code: "+252", country: "Somalia" },
-  { code: "+27", country: "South Africa" },
-  { code: "+82", country: "South Korea" },
-  { code: "+211", country: "South Sudan" },
-  { code: "+34", country: "Spain" },
-  { code: "+94", country: "Sri Lanka" },
-  { code: "+249", country: "Sudan" },
-  { code: "+46", country: "Sweden" },
-  { code: "+41", country: "Switzerland" },
-  { code: "+963", country: "Syria" },
-  { code: "+886", country: "Taiwan" },
-  { code: "+992", country: "Tajikistan" },
-  { code: "+255", country: "Tanzania" },
-  { code: "+66", country: "Thailand" },
-  { code: "+670", country: "Timor-Leste" },
-  { code: "+228", country: "Togo" },
-  { code: "+676", country: "Tonga" },
-  { code: "+216", country: "Tunisia" },
-  { code: "+90", country: "Turkey" },
-  { code: "+993", country: "Turkmenistan" },
-  { code: "+688", country: "Tuvalu" },
-  { code: "+256", country: "Uganda" },
-  { code: "+380", country: "Ukraine" },
-  { code: "+971", country: "United Arab Emirates" },
-  { code: "+44", country: "United Kingdom" },
-  { code: "+1", country: "United States" },
-  { code: "+998", country: "Uzbekistan" },
-  { code: "+678", country: "Vanuatu" },
-  { code: "+379", country: "Vatican City" },
-  { code: "+84", country: "Vietnam" },
-  { code: "+967", country: "Yemen" },
-  { code: "+260", country: "Zambia" },
-  { code: "+263", country: "Zimbabwe" },
-];
+    const aIsLA = latinAmericanCodes.includes(a.code);
+    const bIsLA = latinAmericanCodes.includes(b.code);
 
-// Validation functions
-const validateEmail = (email: string): boolean => {
-  return EMAIL_REGEX.test(email.trim());
-};
+    // Handle +1 countries (NANP) - prioritize Caribbean and North America
+    const isCaribbean = (country: string) =>
+      [
+        "Dominican Republic",
+        "Puerto Rico",
+        "Jamaica",
+        "Trinidad and Tobago",
+        "Barbados",
+      ].includes(country);
+    const isNorthAmerica = (country: string) =>
+      ["United States", "Canada"].includes(country);
 
-const validatePhone = (phoneNumber: string): boolean => {
-  // Remove country code and spaces to get just the numbers
-  const numbersOnly = phoneNumber.replace(/^\+\d+\s/, "").replace(/\D/g, "");
-  return PHONE_REGEX.test(numbersOnly);
-};
+    if (a.code === "+1" && b.code === "+1") {
+      if (isCaribbean(a.country) && !isCaribbean(b.country)) return -1;
+      if (!isCaribbean(a.country) && isCaribbean(b.country)) return 1;
+      if (isNorthAmerica(a.country) && !isNorthAmerica(b.country)) return -1;
+      if (!isNorthAmerica(a.country) && isNorthAmerica(b.country)) return 1;
+      return a.country.localeCompare(b.country);
+    }
 
-const validateName = (name: string): boolean => {
-  return name.trim().length >= 2;
-};
+    // Latin America first
+    if (aIsLA && !bIsLA && b.code !== "+1") return -1;
+    if (!aIsLA && bIsLA && a.code !== "+1") return 1;
+
+    // Then +1 countries (Caribbean + North America)
+    if (a.code === "+1" && !bIsLA) return -1;
+    if (b.code === "+1" && !aIsLA) return 1;
+
+    // Finally alphabetical
+    return a.country.localeCompare(b.country);
+  })
+  .map((c) => ({ code: c.code, country: c.country }));
 
 // Main component
 const TypeformQuiz: React.FC = () => {
@@ -385,6 +218,9 @@ const TypeformQuiz: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [phoneValidationError, setPhoneValidationError] = useState<
+    string | null
+  >(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -434,8 +270,9 @@ const TypeformQuiz: React.FC = () => {
           }
           break;
         case "phone":
-          if (!validatePhone(currentValue)) {
-            return "El número de teléfono debe tener exactamente entre 8 y 10 dígitos";
+          const phoneValidation = validatePhone(currentValue, selectedCode);
+          if (!phoneValidation.isValid) {
+            return phoneValidation.error || "Número de teléfono inválido";
           }
           break;
         case "text":
@@ -458,6 +295,7 @@ const TypeformQuiz: React.FC = () => {
       [questions[currentQuestion].id]: e.target.value,
     });
     setError(null);
+    setPhoneValidationError(null);
   };
 
   // Handle option selection
@@ -465,7 +303,7 @@ const TypeformQuiz: React.FC = () => {
     setAnswers({
       ...answers,
       [questions[currentQuestion].id]: optionId,
-      [`${questions[currentQuestion].id}_text`]: optionText, // Store the display text too
+      [`${questions[currentQuestion].id}_text`]: optionText,
     });
     setError(null);
 
@@ -475,17 +313,33 @@ const TypeformQuiz: React.FC = () => {
     }, 300);
   };
 
-  // Handle phone input with validation
+  // Handle phone input with enhanced validation
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only allow numbers and limit to 10 digits
-    const value = e.target.value.replace(/\D/g, "");
+    const value = e.target.value.replace(/[^\d]/g, "");
 
-    // Limit to 10 digits
-    if (value.length <= 10) {
+    // Get current country validation
+    const countryValidation = COUNTRY_VALIDATIONS.find(
+      (c) => c.code === selectedCode
+    );
+
+    if (countryValidation && value.length <= countryValidation.maxLength) {
+      const fullNumber = `${selectedCode} ${value}`;
       setAnswers({
         ...answers,
-        [questions[currentQuestion].id]: `${selectedCode} ${value}`,
+        [questions[currentQuestion].id]: fullNumber,
       });
+
+      // Real-time validation feedback
+      if (value.length >= countryValidation.minLength) {
+        const validation = validatePhone(value, selectedCode);
+        if (!validation.isValid) {
+          setPhoneValidationError(validation.error || null);
+        } else {
+          setPhoneValidationError(null);
+        }
+      } else {
+        setPhoneValidationError(null);
+      }
     }
 
     setError(null);
@@ -542,10 +396,9 @@ const TypeformQuiz: React.FC = () => {
             }
             break;
           case "phone":
-            if (!validatePhone(value)) {
-              setError(
-                "El número de teléfono debe tener exactamente entre 8 y 10 dígitos"
-              );
+            const phoneValidation = validatePhone(value, selectedCode);
+            if (!phoneValidation.isValid) {
+              setError(phoneValidation.error || "Número de teléfono inválido");
               setCurrentQuestion(i);
               setIsSubmitting(false);
               return;
@@ -575,7 +428,7 @@ const TypeformQuiz: React.FC = () => {
         clients: answers.clients_text || answers.clients || "",
         investment: answers.investment_text || answers.investment || "",
         why: answers.why || "",
-        status: "lead" as const, // Initial status
+        status: "lead" as const,
       };
 
       // Add to Firestore
@@ -608,29 +461,130 @@ const TypeformQuiz: React.FC = () => {
     switch (question.type) {
       case "text":
       case "email":
+        const emailValue = answers[question.id] || "";
+
+        // Real-time email validation feedback
+        const getEmailValidationState = (email: string) => {
+          if (!email) return { state: "empty", message: "" };
+
+          const trimmed = email.trim();
+          if (!trimmed.includes("@")) {
+            return { state: "incomplete", message: "Falta el símbolo @" };
+          }
+
+          const parts = trimmed.split("@");
+          if (parts.length !== 2) {
+            return {
+              state: "invalid",
+              message: "Solo debe haber un símbolo @",
+            };
+          }
+
+          const [localPart, domainPart] = parts;
+          if (!localPart) {
+            return {
+              state: "incomplete",
+              message: "Falta la parte antes del @",
+            };
+          }
+
+          if (!domainPart) {
+            return {
+              state: "incomplete",
+              message: "Falta el dominio después del @",
+            };
+          }
+
+          if (!domainPart.includes(".")) {
+            return {
+              state: "incomplete",
+              message: "El dominio necesita un punto (ej: .com, .org)",
+            };
+          }
+
+          const domainParts = domainPart.split(".");
+          const tld = domainParts[domainParts.length - 1];
+          if (!tld || tld.length < 2) {
+            return {
+              state: "incomplete",
+              message:
+                "La extensión del dominio debe tener al menos 2 caracteres",
+            };
+          }
+
+          if (/^\d+$/.test(tld)) {
+            return {
+              state: "invalid",
+              message: "La extensión del dominio no puede ser solo números",
+            };
+          }
+
+          if (validateEmail(trimmed)) {
+            return { state: "valid", message: "Correo válido" };
+          }
+
+          return { state: "invalid", message: "Formato de correo inválido" };
+        };
+
+        const emailValidation = getEmailValidationState(emailValue);
+
         return (
           <div className="w-full">
             <input
               ref={inputRef}
-              type={question.type === "email" ? "email" : "text"}
-              value={answers[question.id] || ""}
+              type="email"
+              value={emailValue}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              className="w-full bg-transparent border-b-2 border-white/30 focus:border-white py-2 px-1 text-lg outline-none text-white"
-              placeholder={
-                question.type === "email"
-                  ? "ejemplo@correo.com"
-                  : "Escribe tu respuesta aquí..."
-              }
+              className={`w-full bg-transparent border-b-2 ${
+                emailValidation.state === "valid"
+                  ? "border-green-400 focus:border-green-300"
+                  : emailValidation.state === "invalid"
+                  ? "border-red-400 focus:border-red-300"
+                  : "border-white/30 focus:border-white"
+              } py-2 px-1 text-lg outline-none text-white transition-colors`}
+              placeholder="ejemplo@correo.com"
             />
+
+            {/* Real-time email validation feedback */}
+            {emailValue && (
+              <div className="mt-2 text-xs">
+                {emailValidation.state === "valid" && (
+                  <span className="text-green-400 flex items-center gap-1">
+                    <span>✅</span> {emailValidation.message}
+                  </span>
+                )}
+                {emailValidation.state === "incomplete" && (
+                  <span className="text-yellow-400 flex items-center gap-1">
+                    <span>⚠️</span> {emailValidation.message}
+                  </span>
+                )}
+                {emailValidation.state === "invalid" && (
+                  <span className="text-red-400 flex items-center gap-1">
+                    <span>❌</span> {emailValidation.message}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Format example */}
+            <div className="text-xs text-white/40 mt-1">
+              Ejemplo: usuario@dominio.com
+            </div>
           </div>
         );
 
       case "phone":
         const phoneValue = answers[question.id] || "";
-        const numbersOnly = phoneValue
-          .replace(`${selectedCode} `, "")
-          .replace(/\D/g, "");
+        // Extract just the national number (without country code)
+        const nationalNumber = phoneValue.includes(selectedCode)
+          ? phoneValue.replace(`${selectedCode} `, "").replace(/\D/g, "")
+          : phoneValue.replace(/\D/g, "");
+
+        // Get current country validation for display
+        const currentCountryValidation = COUNTRY_VALIDATIONS.find(
+          (c) => c.code === selectedCode
+        );
 
         return (
           <div className="w-full">
@@ -639,7 +593,7 @@ const TypeformQuiz: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-                  className="flex items-center bg-purple-900/50 border border-purple-700/50 rounded px-2 py-1 text-white"
+                  className="flex items-center bg-purple-900/50 border border-purple-700/50 rounded px-2 py-1 text-white min-w-[80px]"
                 >
                   {selectedCode}
                   <ChevronDown className="ml-1 w-4 h-4" />
@@ -647,14 +601,23 @@ const TypeformQuiz: React.FC = () => {
 
                 {showCountryDropdown && (
                   <div className="absolute top-full left-0 mt-1 max-h-60 overflow-y-auto bg-purple-900/90 border border-purple-700/50 rounded z-10 w-64">
-                    {countryCodes.map((country) => (
+                    {countryCodes.map((country, index) => (
                       <button
-                        key={`${country.code}-${country.country}`}
+                        key={`${country.code}-${country.country}-${index}`}
                         type="button"
                         className="block w-full text-left px-3 py-2 hover:bg-purple-800/80 text-white"
                         onClick={() => {
                           setSelectedCode(country.code);
                           setShowCountryDropdown(false);
+                          setPhoneValidationError(null);
+                          // Update the stored value with new country code
+                          if (nationalNumber) {
+                            setAnswers({
+                              ...answers,
+                              [questions[currentQuestion]
+                                .id]: `${country.code} ${nationalNumber}`,
+                            });
+                          }
                         }}
                       >
                         <span className="font-medium">{country.code}</span>{" "}
@@ -668,19 +631,95 @@ const TypeformQuiz: React.FC = () => {
               <input
                 ref={inputRef}
                 type="tel"
-                value={numbersOnly}
-                onChange={handlePhoneChange}
+                value={nationalNumber}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^\d]/g, "");
+
+                  if (
+                    currentCountryValidation &&
+                    value.length <= currentCountryValidation.maxLength
+                  ) {
+                    const fullNumber = value ? `${selectedCode} ${value}` : "";
+                    setAnswers({
+                      ...answers,
+                      [questions[currentQuestion].id]: fullNumber,
+                    });
+
+                    // Only validate if user has entered minimum length or more
+                    if (value.length >= currentCountryValidation.minLength) {
+                      const validation = validatePhone(value, selectedCode);
+                      if (!validation.isValid) {
+                        setPhoneValidationError(validation.error || null);
+                      } else {
+                        setPhoneValidationError(null);
+                      }
+                    } else {
+                      // Clear validation error if user is still typing
+                      setPhoneValidationError(null);
+                    }
+                  }
+
+                  setError(null);
+                }}
                 onKeyDown={handleKeyDown}
                 className="flex-1 bg-transparent border-b-2 border-white/30 focus:border-white py-2 px-1 text-lg outline-none text-white"
-                placeholder="1234567890"
-                maxLength={10}
+                placeholder={currentCountryValidation?.example || "1234567890"}
+                maxLength={currentCountryValidation?.maxLength || 15}
               />
             </div>
-            <div className="text-xs text-white/60 mt-1">
-              {numbersOnly.length >= 8 && numbersOnly.length <= 10 ? (
-                <span className="text-green-500">✅</span>
-              ) : null}
+
+            {/* Real-time validation feedback */}
+            <div className="flex items-center justify-between mt-2">
+              <div className="text-xs text-white/60">
+                <span className="text-orange-500 underline">
+                  Asegurate de usar tu numero de whatsapp!
+                </span>
+                <br />
+                {currentCountryValidation && (
+                  <>
+                    {nationalNumber.length >=
+                      currentCountryValidation.minLength &&
+                    nationalNumber.length <=
+                      currentCountryValidation.maxLength &&
+                    !phoneValidationError ? (
+                      <span className="text-green-400">✅ Número válido</span>
+                    ) : nationalNumber.length > 0 ? (
+                      <span>
+                        Longitud: {nationalNumber.length}/
+                        {currentCountryValidation.minLength}
+                        {currentCountryValidation.minLength !==
+                        currentCountryValidation.maxLength
+                          ? `-${currentCountryValidation.maxLength}`
+                          : ""}{" "}
+                        dígitos móvil
+                      </span>
+                    ) : (
+                      <span>
+                        Ingrese {currentCountryValidation.minLength}
+                        {currentCountryValidation.minLength !==
+                        currentCountryValidation.maxLength
+                          ? `-${currentCountryValidation.maxLength}`
+                          : ""}{" "}
+                        dígitos móvil
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {phoneValidationError && (
+                <div className="text-xs text-red-300">
+                  {phoneValidationError}
+                </div>
+              )}
             </div>
+
+            {/* Country-specific format example */}
+            {currentCountryValidation && (
+              <div className="text-xs text-white/40 mt-1">
+                Ejemplo móvil: {selectedCode} {currentCountryValidation.example}
+              </div>
+            )}
           </div>
         );
 
@@ -746,7 +785,7 @@ const TypeformQuiz: React.FC = () => {
     }
   };
 
-  // If the form is submitted, show success message
+  // If the form is submitted, show success message with WhatsApp CTA
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-purple-900 to-purple-950 flex justify-center items-center p-6">
@@ -763,9 +802,28 @@ const TypeformQuiz: React.FC = () => {
             Hemos recibido tu solicitud. Nos pondremos en contacto contigo
             pronto.
           </p>
+
+          {/* WhatsApp CTA Button */}
+          {answers.phone && (
+            <div className="mb-4">
+              <a
+                href={generateWhatsAppLink(answers.phone)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-md transition-colors mb-3 w-full justify-center"
+              >
+                <WhatsAppIcon className="w-5 h-5" />
+                Si quieres que veamos tu entrada con más rapidez da click aquí
+              </a>
+              <p className="text-white/60 text-xs">
+                Te llevará a WhatsApp con un mensaje pre-escrito
+              </p>
+            </div>
+          )}
+
           <button
             onClick={() => (window.location.href = "/")}
-            className="bg-white text-purple-900 font-medium py-2 px-6 rounded-md hover:bg-white/90 transition-colors"
+            className="bg-white text-purple-900 font-medium py-2 px-6 rounded-md hover:bg-white/90 transition-colors w-full"
           >
             Volver al inicio
           </button>
@@ -906,6 +964,22 @@ const TypeformQuiz: React.FC = () => {
           Powered by Edición Persuasiva
         </div>
       </div>
+
+      {/* CSS for float animation */}
+      <style jsx>{`
+        @keyframes float {
+          0%,
+          100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          33% {
+            transform: translateY(-10px) rotate(120deg);
+          }
+          66% {
+            transform: translateY(5px) rotate(240deg);
+          }
+        }
+      `}</style>
     </div>
   );
 };
@@ -948,6 +1022,17 @@ const Spinner = ({ className = "w-6 h-6" }: { className?: string }) => (
       fill="currentColor"
       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
     />
+  </svg>
+);
+
+const WhatsAppIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg
+    className={className}
+    fill="currentColor"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.465 3.488" />
   </svg>
 );
 
