@@ -31,19 +31,23 @@ import {
 // Helper function to generate WhatsApp link
 const generateWhatsAppLink = (phoneNumber: string): string => {
   // Clean the phone number - remove all non-digit characters except +
-  const cleanNumber = phoneNumber.replace(/[^\d+]/g, "");
+  let cleanNumber = phoneNumber.replace(/[^\d+]/g, "");
 
-  // Remove leading + if present and any spaces or special characters
-  const whatsappNumber = cleanNumber.startsWith("+")
-    ? cleanNumber.substring(1)
-    : cleanNumber;
+  // Handle different phone number formats
+  if (cleanNumber.startsWith("+")) {
+    // Remove the + sign for WhatsApp URL
+    cleanNumber = cleanNumber.substring(1);
+  }
 
-  // Default message for lead contact
-  const message = encodeURIComponent(
-    "Hola! Te contactamos desde Edición Persuasiva sobre tu solicitud para acceder a nuestra formación. ¿Tienes unos minutos para conversar?"
-  );
+  // Create a professional message for admin contact
+  const message =
+    "Hola! Te contactamos desde Edicion Persuasiva sobre tu solicitud para acceder a nuestra formacion. Tienes unos minutos para conversar?";
 
-  return `https://wa.me/${whatsappNumber}?text=${message}`;
+  // Use proper URL encoding
+  const encodedMessage = encodeURIComponent(message);
+
+  // Return the WhatsApp URL
+  return `https://wa.me/${cleanNumber}?text=${encodedMessage}`;
 };
 
 export default function LeadDetailsPage() {
