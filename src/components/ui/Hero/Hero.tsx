@@ -466,15 +466,15 @@ const HeroSection = () => {
                             d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
                           />
                         </svg>
-                        <div className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
+                        <div className="text-lg sm:text-2xl md:text-3xl font-bold text-white">
                           🔊
                         </div>
                       </div>
 
-                      <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1 sm:mb-2">
+                      <h3 className="text-lg  md:text-3xl lg:text-4xl font-bold text-white mb-1 sm:mb-2">
                         TOCA PARA ACTIVAR
                       </h3>
-                      <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-4">
+                      <h3 className="text-lg  md:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-4">
                         EL AUDIO
                       </h3>
 
@@ -510,7 +510,6 @@ const HeroSection = () => {
                             d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"
                           />
                         </svg>
-                        <span className="text-lg font-semibold">Toca aquí</span>
                       </div>
                       <div className="hidden sm:flex items-center">
                         <svg
@@ -531,20 +530,6 @@ const HeroSection = () => {
                         </span>
                       </div>
                     </motion.div>
-
-                    {/* Skip Option */}
-                    <motion.button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Just hide the overlay without enabling audio
-                        setHasUserInteracted(true);
-                      }}
-                      className="mt-4 sm:mt-6 text-white/60 hover:text-white/90 text-xs sm:text-sm underline transition-colors touch-manipulation"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      Continuar sin audio
-                    </motion.button>
                   </div>
                 </motion.div>
               )}
