@@ -422,15 +422,24 @@ const HeroSection = () => {
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
-                  className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-10"
+                  className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-10 touch-none"
                   onClick={() => {
                     if (videoRef.current) {
                       videoRef.current.muted = false;
                       setIsMuted(false);
+                      setHasUserInteracted(true);
+                    }
+                  }}
+                  onTouchEnd={() => {
+                    // Handle touch events specifically for mobile
+                    if (videoRef.current) {
+                      videoRef.current.muted = false;
+                      setIsMuted(false);
+                      setHasUserInteracted(true);
                     }
                   }}
                 >
-                  <div className="text-center cursor-pointer">
+                  <div className="text-center cursor-pointer touch-manipulation px-4 max-w-lg">
                     {/* Main Message */}
                     <motion.div
                       animate={{
@@ -441,11 +450,11 @@ const HeroSection = () => {
                         repeat: Infinity,
                         ease: "easeInOut",
                       }}
-                      className="bg-purple-600/90 border-2 border-purple-400 rounded-2xl px-8 py-6 mb-4 shadow-2xl"
+                      className="bg-purple-600/90 border-2 border-purple-400 rounded-2xl px-4 sm:px-8 py-4 sm:py-6 mb-4 shadow-2xl"
                     >
                       <div className="flex items-center justify-center mb-3">
                         <svg
-                          className="w-12 h-12 text-white mr-3"
+                          className="w-8 sm:w-12 h-8 sm:h-12 text-white mr-2 sm:mr-3"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -457,24 +466,24 @@ const HeroSection = () => {
                             d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
                           />
                         </svg>
-                        <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
+                        <div className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
                           🔊
                         </div>
                       </div>
 
-                      <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">
-                        CLICK PARA ACTIVAR
+                      <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1 sm:mb-2">
+                        TOCA PARA ACTIVAR
                       </h3>
-                      <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-4">
+                      <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-4">
                         EL AUDIO
                       </h3>
 
-                      <p className="text-white/90 text-lg">
+                      <p className="text-white/90 text-sm sm:text-lg">
                         Toca en cualquier lugar para escuchar
                       </p>
                     </motion.div>
 
-                    {/* Visual Click Indicator */}
+                    {/* Visual Touch Indicator - Different for mobile/desktop */}
                     <motion.div
                       animate={{
                         opacity: [0.5, 1, 0.5],
@@ -486,20 +495,41 @@ const HeroSection = () => {
                       }}
                       className="flex items-center justify-center text-white/80"
                     >
-                      <svg
-                        className="w-8 h-8 mr-2"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"
-                        />
-                      </svg>
-                      <span className="text-xl font-semibold">Toca aquí</span>
+                      {/* Show touch icon on mobile, cursor on desktop */}
+                      <div className="block sm:hidden">
+                        <svg
+                          className="w-6 h-6 mr-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"
+                          />
+                        </svg>
+                        <span className="text-lg font-semibold">Toca aquí</span>
+                      </div>
+                      <div className="hidden sm:flex items-center">
+                        <svg
+                          className="w-8 h-8 mr-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"
+                          />
+                        </svg>
+                        <span className="text-xl font-semibold">
+                          Haz clic aquí
+                        </span>
+                      </div>
                     </motion.div>
 
                     {/* Skip Option */}
@@ -509,11 +539,49 @@ const HeroSection = () => {
                         // Just hide the overlay without enabling audio
                         setHasUserInteracted(true);
                       }}
-                      className="mt-6 text-white/60 hover:text-white/90 text-sm underline transition-colors"
+                      className="mt-4 sm:mt-6 text-white/60 hover:text-white/90 text-xs sm:text-sm underline transition-colors touch-manipulation"
                       whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
                       Continuar sin audio
                     </motion.button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* FALLBACK OVERLAY - Show when autoplay failed completely (common on mobile) */}
+              {!isPlaying && !showOverlay && isVideoAvailable && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="absolute inset-0 flex items-center justify-center bg-black/70 z-10"
+                  onClick={togglePlay}
+                >
+                  <div className="text-center">
+                    <motion.button
+                      onClick={togglePlay}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="relative w-16 sm:w-20 h-16 sm:h-20 rounded-full flex items-center justify-center transition-colors duration-300 focus:outline-none focus:ring-4 focus:ring-purple-400 bg-purple-600/80 hover:bg-purple-500/90"
+                      aria-label="Play video"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 sm:h-8 w-6 sm:w-8 text-white ml-1"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 rounded-full border-2 border-purple-400 animate-ping opacity-20"></div>
+                    </motion.button>
+                    <p className="text-white/80 text-sm sm:text-base mt-3">
+                      Toca para reproducir con audio
+                    </p>
                   </div>
                 </motion.div>
               )}
