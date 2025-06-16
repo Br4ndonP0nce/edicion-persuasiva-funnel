@@ -171,7 +171,7 @@ const HeroSection = () => {
             <div className="relative">
               {/* Video Element - SIMPLE AUTOPLAY APPROACH */}
               <EnhancedVideoPlayer
-                videoUrl="your-video.mp4"
+                videoUrl="https://d29v4wmhmft6s2.cloudfront.net/landingVideos/heroVideoCompressed.mp4"
                 title="EDICIÓN PERSUASIVA"
                 theme="purple"
                 autoplay={true} // Autoplay enabled
