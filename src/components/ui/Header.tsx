@@ -34,7 +34,7 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4 flex justify-center items-center">
         <Link href="/" className="flex items-center justify-center">
           <Image
-            src="/image/logo.jpg" // Your logo path
+            src="/image/mainLogo.png" // Your logo path
             alt="Edición Persuasiva"
             width={180}
             height={30}

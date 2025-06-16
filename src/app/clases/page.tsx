@@ -5,7 +5,7 @@ import TestimonialsSection from "@/components/ui/Testimonials/Testimonials";
 import BenefitsSection from "@/components/ui/Benefits/Benefits";
 import SuccessSection from "@/components/ui/success/Success";
 import ClassesCTA from "@/components/ui/classesCTA/ClassesCTA";
-import JsonLd, { createBreadcrumbSchema } from "@/components/JsonLd";
+
 const page = () => {
   return (
     <main>
