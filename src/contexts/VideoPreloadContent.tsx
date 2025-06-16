@@ -107,14 +107,14 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
         onVideoReady,
       };
 
-      console.log(
+      /*console.log(
         "🎬 Starting video preload:",
         videoUrl,
         "with timeout:",
         maxWaitTime + "ms",
         "autoplay:",
         autoplay
-      );
+      );*/
 
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -148,7 +148,7 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
         }
 
         timeoutRef.current = setTimeout(() => {
-          console.log("⏰ Video preload timeout reached, proceeding anyway");
+          //console.log("⏰ Video preload timeout reached, proceeding anyway");
 
           setState((prev) => ({
             ...prev,
@@ -164,7 +164,7 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
         }, maxWaitTime);
 
         const handleLoadStart = () => {
-          console.log("📥 Video load started");
+          //console.log("📥 Video load started");
           setState((prev) => ({ ...prev, progress: 10 }));
         };
 
@@ -175,18 +175,18 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
             if (duration > 0) {
               const progress = Math.min(90, (buffered / duration) * 90);
               setState((prev) => ({ ...prev, progress }));
-              console.log(`📊 Video buffering: ${progress.toFixed(1)}%`);
+              //console.log(`📊 Video buffering: ${progress.toFixed(1)}%`);
             }
           }
         };
 
         const handleCanPlay = () => {
-          console.log("✅ Video can start playing");
+          //console.log("✅ Video can start playing");
           setState((prev) => ({ ...prev, progress: 95 }));
         };
 
         const handleCanPlayThrough = () => {
-          console.log("🎯 Video fully preloaded and ready");
+          //console.log("🎯 Video fully preloaded and ready");
 
           if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
@@ -217,7 +217,7 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
         };
 
         const handleError = (e: Event) => {
-          console.error("❌ Video preload error:", e);
+          //console.error("❌ Video preload error:", e);
 
           if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
@@ -241,7 +241,7 @@ export const VideoPreloadProvider: React.FC<VideoPreloadProviderProps> = ({
           video.removeEventListener("canplaythrough", handleCanPlayThrough);
           video.removeEventListener("error", handleError);
 
-          console.log("🔄 Resolving despite error to avoid blocking UI");
+          //console.log("🔄 Resolving despite error to avoid blocking UI");
           resolve();
         };
 
