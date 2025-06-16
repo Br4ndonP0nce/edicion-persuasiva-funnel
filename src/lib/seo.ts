@@ -101,4 +101,9 @@ export const defaultMetadata: Metadata = {
       "Descubre los mejores videos creados por nuestra comunidad de editores. Inspírate y comparte tu trabajo.",
       ["mejores videos", "comunidad editores", "hall of fame"]
     ),
+    recursos: generatePageMetadata(
+      "Recursos - Recursos gratuitos para potenciar tu contenido",
+      "Accede a recursos gratuitos que te ayudarán a mejorar tus habilidades de edición y a potenciar tu contenido.",
+      ["Recursos gratuitos", "Edicion persuasiva", "recursos edición video", "herramientas edición"]
+    ),
   }

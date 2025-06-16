@@ -29,6 +29,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly' as const,
       priority: 0.7, // Community content
     },
+    {
+      url: `${baseUrl}/recursos`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.9, // Important conversion page
+    },
   ]
   
   return routes
