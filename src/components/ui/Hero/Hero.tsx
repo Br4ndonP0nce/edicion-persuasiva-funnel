@@ -39,7 +39,7 @@ const HeroSection = () => {
     module2: "MÓDULO PRÁCTICO",
     module3: "CIERRES DE VENTAS",
     video_url:
-      "https://d29v4wmhmft6s2.cloudfront.net/landingVideos/heroVideoCompressed.mp4",
+      "https://firebasestorage.googleapis.com/v0/b/edicion-persuasiva.firebasestorage.app/o/public%2Fvideos%2FheroVideoCompressed.mp4?alt=media&token=38d812a1-fece-46c3-805b-8980b8aa0bad",
     poster_url: "/image/hero-poster.jpg",
     cta_button: "Deseo Aplicar",
     cta_url: "join",
@@ -171,7 +171,7 @@ const HeroSection = () => {
             <div className="relative">
               {/* Video Element - SIMPLE AUTOPLAY APPROACH */}
               <EnhancedVideoPlayer
-                videoUrl="https://d29v4wmhmft6s2.cloudfront.net/landingVideos/heroVideoCompressed.mp4"
+                videoUrl="https://firebasestorage.googleapis.com/v0/b/edicion-persuasiva.firebasestorage.app/o/public%2Fvideos%2FheroVideoCompressed.mp4?alt=media&token=38d812a1-fece-46c3-805b-8980b8aa0bad"
                 title="EDICIÓN PERSUASIVA"
                 theme="purple"
                 autoplay={true} // Autoplay enabled
