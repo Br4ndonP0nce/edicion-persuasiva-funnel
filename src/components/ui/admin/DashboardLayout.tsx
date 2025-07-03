@@ -1,4 +1,4 @@
-// src/components/ui/admin/DashboardLayout.tsx - Updated with Activos navigation
+// src/components/ui/admin/DashboardLayout.tsx - Updated with Discord navigation
 import React, { ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -20,6 +20,8 @@ import {
   Shield,
   CheckCircle,
   CreditCard,
+  MessageSquare, // Added for Discord
+  Bot, // Alternative icon for Discord
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -51,7 +53,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     }
   };
 
-  // Dynamic navigation based on user permissions - UPDATED with Activos
+  // Dynamic navigation based on user permissions - UPDATED with Discord
   const navigation = [
     {
       name: "Dashboard",
@@ -70,6 +72,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       href: "/admin/activos",
       icon: CheckCircle,
       permission: "active_members:read" as const,
+    },
+    {
+      name: "Hall of Fame",
+      href: "/admin/hall-of-fame",
+      icon: MessageSquare,
+      permission: "users:write" as const,
     },
     {
       name: "Estadísticas",

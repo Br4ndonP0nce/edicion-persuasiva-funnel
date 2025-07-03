@@ -34,6 +34,7 @@
     "nodemailer": "^7.0.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-social-media-embed": "^2.5.18",
     "recharts": "^2.15.3",
     "tailwind-merge": "^3.3.0",
     "xlsx": "^0.18.5"

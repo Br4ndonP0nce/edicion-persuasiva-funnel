@@ -3,16 +3,24 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import SafeImage from "@/components/SafeImage";
 import {
-  getWeeklyLeaderboard,
-  getAllTimeLeaderboard,
-  getWeekSubmissions,
-  getAvailableWeeks,
-  getCurrentWeekNumber,
+  getLeaderboard,
+  getHallOfFameSubmissions,
+  getRecentSubmissions,
+  getAvailableMonths,
+  getCurrentMonthCycle,
+  getMonthName,
+  getUserLevel,
+  getLevelColor,
+  getProgressToNextLevel,
+  WIN_CATEGORIES,
   LeaderboardEntry,
-  VideoSubmission,
+  WinSubmission,
+  renderSubmissionPreview,
 } from "@/lib/firebase/hall-of-fame";
-
+import MediaPreview from "@/components/MediaPreview";
+import EnhancedSubmissionCard from "@/components/SubmissionCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,58 +31,67 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import Header from "@/components/ui/Header";
 import JsonLd, { createBreadcrumbSchema } from "@/components/JsonLd";
+
 const HallOfFamePage = () => {
   const breadcrumbItems = [
-    { name: "Inicio", url: "https://www.decodenext.dev" },
-    { name: "Hall of Fame", url: "https://www.decodenext.dev/hall-of-fame" },
+    { name: "Inicio", url: "https://www.edicionpersuasiva.com" },
+    {
+      name: "Hall of Fame",
+      url: "https://www.edicionpersuasiva.com/hall-of-fame",
+    },
   ];
-  const [activeTab, setActiveTab] = useState("weekly");
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [submissions, setSubmissions] = useState<VideoSubmission[]>([]);
-  const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
-  const [currentWeek, setCurrentWeek] = useState<number>(
-    getCurrentWeekNumber()
+  const isDiscordImage = (url: string) => {
+    return url.includes("cdn.discordapp.com") || url.includes("discord.com");
+  };
+  const [activeTab, setActiveTab] = useState("hall_of_fame");
+  const [leaderboardType, setLeaderboardType] = useState<"monthly" | "alltime">(
+    "monthly"
   );
-  const [selectedWeek, setSelectedWeek] = useState<number>(
-    getCurrentWeekNumber()
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [submissions, setSubmissions] = useState<WinSubmission[]>([]);
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+  const [currentMonth, setCurrentMonth] = useState<string>(
+    getCurrentMonthCycle()
+  );
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    getCurrentMonthCycle()
   );
   const [loading, setLoading] = useState(true);
 
-  // Fetch data based on active tab and selected week
+  // Fetch data based on active tab, leaderboard type, and selected month
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch available weeks
-        const weeks = await getAvailableWeeks();
-        setAvailableWeeks(weeks);
+        // Fetch available months
+        const months = await getAvailableMonths();
+        setAvailableMonths(months);
 
-        // If no weeks available or selected week is not available, use current week
-        if (weeks.length === 0 || !weeks.includes(selectedWeek)) {
-          setSelectedWeek(getCurrentWeekNumber());
+        // If selected month is not available, use current month
+        if (months.length === 0 || !months.includes(selectedMonth)) {
+          setSelectedMonth(getCurrentMonthCycle());
         }
 
         // Fetch leaderboard data
-        if (activeTab === "weekly") {
-          const weeklyLeaderboard = await getWeeklyLeaderboard(selectedWeek);
-          setLeaderboard(weeklyLeaderboard);
+        const leaderboardData = await getLeaderboard(
+          leaderboardType,
+          leaderboardType === "monthly" ? selectedMonth : undefined,
+          10
+        );
+        setLeaderboard(leaderboardData);
 
-          // Fetch top submissions for the selected week
-          const weekSubmissions = await getWeekSubmissions(selectedWeek);
-          setSubmissions(weekSubmissions);
+        // Fetch submissions based on active tab
+        let submissionData: WinSubmission[] = [];
+        if (activeTab === "hall_of_fame") {
+          submissionData = await getHallOfFameSubmissions(20);
         } else {
-          const allTimeLeaderboard = await getAllTimeLeaderboard();
-          setLeaderboard(allTimeLeaderboard);
-
-          // For all-time tab, fetch the most recent submissions
-          const recentSubmissions = await getWeekSubmissions(
-            getCurrentWeekNumber()
-          );
-          setSubmissions(recentSubmissions);
+          submissionData = await getRecentSubmissions(selectedMonth, 20);
         }
+        setSubmissions(submissionData);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -83,83 +100,13 @@ const HallOfFamePage = () => {
     };
 
     fetchData();
-  }, [activeTab, selectedWeek]);
+  }, [activeTab, leaderboardType, selectedMonth]);
 
-  // Function to render video embeds based on platform
-  const renderVideoEmbed = (submission: VideoSubmission) => {
-    // First try platform-specific embeds
-    if (submission.platform === "youtube" && submission.videoId) {
-      return (
-        <iframe
-          width="100%"
-          height="100%"
-          src={`https://www.youtube.com/embed/${submission.videoId}`}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="rounded-md"
-        ></iframe>
-      );
-    } else if (submission.platform === "vimeo" && submission.videoId) {
-      return (
-        <iframe
-          width="100%"
-          height="100%"
-          src={`https://player.vimeo.com/video/${submission.videoId}`}
-          allow="autoplay; fullscreen"
-          allowFullScreen
-          className="rounded-md"
-        ></iframe>
-      );
-    } else if (submission.platform === "instagram" && submission.videoId) {
-      // Just render a link for Instagram - their embed APIs are less reliable
-      return (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-purple-900/30 rounded-md p-4">
-          <div className="text-lg font-medium mb-2 text-white">
-            Instagram Reel
-          </div>
-          <a
-            href={`https://www.instagram.com/reel/${submission.videoId}/`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition-colors"
-          >
-            View Video
-          </a>
-        </div>
-      );
-    } else if (submission.platform === "facebook" && submission.videoId) {
-      // Just render a link for Facebook - their embed APIs are less reliable
-      return (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-purple-900/30 rounded-md p-4">
-          <div className="text-lg font-medium mb-2 text-white">
-            Facebook Video
-          </div>
-          <a
-            href={`https://www.facebook.com/watch/?v=${submission.videoId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition-colors"
-          >
-            View Video
-          </a>
-        </div>
-      );
-    } else {
-      // Fallback for unknown platforms or direct URLs
-      return (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-purple-900/30 rounded-md p-4">
-          <div className="text-lg font-medium mb-2">External Video</div>
-          <a
-            href={submission.videoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition-colors"
-          >
-            View Video
-          </a>
-        </div>
-      );
-    }
+  // Function to render submission preview based on evidence type
+  const renderSubmissionCard = (submission: WinSubmission) => {
+    return (
+      <EnhancedSubmissionCard key={submission.id} submission={submission} />
+    );
   };
 
   return (
@@ -174,152 +121,59 @@ const HallOfFamePage = () => {
           className="text-center mb-12"
         >
           <h1 className="text-4xl md:text-5xl font-bold mb-4 purple-text-glow">
-            Hall of Fame
+            🏆 Hall of Fame
           </h1>
           <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">
-            Los top videos hechos por la comunidad de Edicion Persuasiva, unete
-            a la comunidad, sube tus videos en #hall-of-fame y gana
-            reconocimiento cada semana cada semana!
+            Los mejores editores de la comunidad de Edición Persuasiva. ¡Sube
+            tus wins en Discord y gana reconocimiento!
           </p>
+
+          {/* Win Categories Info */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 max-w-4xl mx-auto">
+            {Object.values(WIN_CATEGORIES).map((category) => (
+              <div
+                key={category.id}
+                className="bg-purple-950/30 border border-purple-800/50 rounded-lg p-4"
+              >
+                <div className="text-2xl mb-2">{category.emoji}</div>
+                <div className="text-sm font-medium text-white">
+                  {category.name}
+                </div>
+                <div className="text-xs text-purple-400">
+                  +{category.points}pts
+                </div>
+                <div className="text-xs text-gray-400 mt-1">
+                  {category.description}
+                </div>
+              </div>
+            ))}
+          </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Leaderboard Section */}
-          <div className="lg:col-span-1">
+        <div className="flex justify-center">
+          {/* Submissions Grid - Centered and Smaller */}
+          <div className="w-full max-w-4xl">
+            {" "}
+            {/* Changed: Added max-width container */}
             <Card className="bg-purple-950/30 border-purple-800/50">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-2xl font-bold text-white">
-                    Leaderboard
-                  </CardTitle>
-                  <Tabs
-                    defaultValue="weekly"
-                    value={activeTab}
-                    onValueChange={setActiveTab}
-                  >
+              <CardHeader>
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <CardTitle className="text-2xl font-bold text-white">
+                      🎯 Submissions
+                    </CardTitle>
+                    <CardDescription className="text-gray-300">
+                      Los mejores wins de la comunidad
+                    </CardDescription>
+                  </div>
+                  <Tabs value={activeTab} onValueChange={setActiveTab}>
                     <TabsList className="bg-purple-900/50">
-                      <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                      <TabsTrigger value="alltime">All Time</TabsTrigger>
+                      <TabsTrigger value="hall_of_fame">
+                        Hall of Fame
+                      </TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
-                {activeTab === "weekly" && availableWeeks.length > 0 && (
-                  <div className="mt-4 flex items-center gap-2">
-                    <div className="text-sm text-gray-400">Week:</div>
-                    <select
-                      value={selectedWeek}
-                      onChange={(e) => setSelectedWeek(Number(e.target.value))}
-                      className="bg-purple-900/50 border border-purple-700/50 rounded px-2 py-1 text-sm"
-                    >
-                      {availableWeeks.map((week) => (
-                        <option key={week} value={week}>
-                          Week {week}
-                          {week === currentWeek ? " (Current)" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex justify-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-                  </div>
-                ) : leaderboard.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">
-                    <p className="text-lg text-white">No entries yet!</p>
-                    <p className="text-sm mt-2 ">
-                      Sube el link de tu video en nuestro Discord y gana
-                      reconocimiento en la comunidad.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {leaderboard.map((entry) => (
-                      <div
-                        key={entry.userId}
-                        className={`flex items-center gap-3 p-3 rounded-md ${
-                          entry.rank === 1
-                            ? "bg-yellow-600/20 border border-yellow-600/30"
-                            : entry.rank === 2
-                            ? "bg-gray-500/20 border border-gray-400/30"
-                            : entry.rank === 3
-                            ? "bg-amber-800/20 border border-amber-700/30"
-                            : "bg-purple-900/20 border border-purple-800/30"
-                        }`}
-                      >
-                        <div
-                          className={`w-8 h-8 flex items-center justify-center rounded-full font-bold ${
-                            entry.rank === 1
-                              ? "bg-yellow-600 text-white"
-                              : entry.rank === 2
-                              ? "bg-gray-400 text-gray-900"
-                              : entry.rank === 3
-                              ? "bg-amber-700 text-white"
-                              : "bg-purple-700/50 text-gray-200"
-                          }`}
-                        >
-                          {entry.rank}
-                        </div>
-                        <div className="w-10 h-10 relative rounded-full overflow-hidden bg-purple-800/50">
-                          {entry.avatar && (
-                            <Image
-                              src={entry.avatar}
-                              alt={entry.username}
-                              fill
-                              className="object-cover"
-                            />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate text-white">
-                            {entry.username}
-                          </p>
-                          <p className="text-sm text-gray-400">
-                            {entry.votes} votes
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            <div className="mt-6">
-              <Card className="bg-purple-950/30 border-purple-800/50">
-                <CardHeader>
-                  <CardDescription className="text-gray-300">
-                    Sube el link de tu video en #hall-of-fame y gana
-                    reconocimiento en la comunidad.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col gap-4">
-                    <p className="text-sm text-gray-300">
-                      Comparte tu mejor video y gana reconocimiento en la
-                      comunidad.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Video Submissions Grid */}
-          <div className="lg:col-span-2">
-            <Card className="bg-purple-950/30 border-purple-800/50">
-              <CardHeader>
-                <CardTitle className="text-2xl font-bold text-gray-300">
-                  {activeTab === "weekly"
-                    ? `Videos de la semana ${selectedWeek} `
-                    : "Top Submissions"}
-                </CardTitle>
-                <CardDescription className="text-gray-300">
-                  {activeTab === "weekly"
-                    ? "Los mejores videos de la semana"
-                    : "Los mejores videos de todos los tiempos"}
-                </CardDescription>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -328,59 +182,144 @@ const HallOfFamePage = () => {
                   </div>
                 ) : submissions.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
-                    <p className="text-lg">No hay videos todavia!</p>
+                    <p className="text-lg text-white">
+                      ¡No hay submissions todavía!
+                    </p>
                     <p className="text-sm mt-2">
-                      Se el primero en subir un video
+                      Sé el primero en subir tu win en Discord
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {submissions.map((submission) => (
-                      <motion.div
-                        key={submission.id}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3 }}
-                        className="bg-purple-900/20 border border-purple-700/30 rounded-lg overflow-hidden"
-                      >
-                        <div className="aspect-video relative">
-                          {renderVideoEmbed(submission)}
-                        </div>
-                        <div className="p-4">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-8 h-8 relative rounded-full overflow-hidden bg-purple-800/50">
-                              {submission.authorAvatar && (
-                                <Image
-                                  src={submission.authorAvatar}
-                                  alt={submission.authorUsername}
-                                  fill
-                                  className="object-cover"
-                                />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate text-white">
-                                {submission.authorUsername}
-                              </p>
-                              <p className="text-xs text-gray-400">
-                                {new Date(
-                                  submission.timestamp
-                                ).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <Badge className="bg-purple-600">
-                              {submission.votes} votes
-                            </Badge>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl mx-auto">
+                    {/* Changed: 3 columns max, smaller gaps, centered */}
+                    {submissions.map((submission) =>
+                      renderSubmissionCard(submission)
+                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
         </div>
+
+        {/* Statistics Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mt-12"
+        >
+          <Card className="bg-purple-950/30 border-purple-800/50">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-white text-center">
+                📊 Estadísticas del Mes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {Object.values(WIN_CATEGORIES).map((category) => {
+                  const categorySubmissions = submissions.filter(
+                    (s) => s.category === category.id
+                  );
+                  const totalPoints = categorySubmissions.reduce(
+                    (sum, s) => sum + s.points,
+                    0
+                  );
+
+                  return (
+                    <div key={category.id} className="text-center">
+                      <div className="text-3xl mb-2">{category.emoji}</div>
+                      <div className="text-2xl font-bold text-white mb-1">
+                        {categorySubmissions.length}
+                      </div>
+                      <div className="text-sm text-gray-300 mb-1">
+                        {category.name}
+                      </div>
+                      <div className="text-xs text-purple-400">
+                        {totalPoints} puntos totales
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* How to Participate Section */}
+        {/* <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mt-12"
+        >
+          <Card className="bg-purple-950/30 border-purple-800/50">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-white text-center">
+                🎯 ¿Cómo Participar?
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-4">
+                    📱 Pasos para enviar wins:
+                  </h3>
+                  <ol className="space-y-3 text-gray-300">
+                    <li className="flex items-start gap-3">
+                      <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
+                        1
+                      </span>
+                      <span>Sube tu imagen, video o enlace en Discord</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
+                        2
+                      </span>
+                      <span>Selecciona la categoría de tu win</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
+                        3
+                      </span>
+                      <span>¡Espera la aprobación y gana puntos!</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
+                        4
+                      </span>
+                      <span>Compite por el top 3 mensual</span>
+                    </li>
+                  </ol>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-4">
+                    🏅 Recompensas:
+                  </h3>
+                  <ul className="space-y-2 text-gray-300">
+                    <li className="flex items-center gap-2">
+                      <span className="text-yellow-500">🥇</span>
+                      <span>Top 3 mensual: Reconocimiento en redes</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-purple-500">⭐</span>
+                      <span>Hall of Fame: Exposición permanente</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-500">💼</span>
+                      <span>Recomendaciones a futuros clientes</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-blue-500">🚀</span>
+                      <span>Construcción de marca personal</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>*/}
       </div>
     </div>
   );
