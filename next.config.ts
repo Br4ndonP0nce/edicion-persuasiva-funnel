@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
       'instagram.fmex5-1.fna.fbcdn.net',
       'static.xx.fbcdn.net',
       'scontent.xx.fbcdn.net',
+      'drive.google.com',
       // Keep any other domains you already have here
     ],
   },
