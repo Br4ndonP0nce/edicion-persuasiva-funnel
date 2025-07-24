@@ -1,3 +1,4 @@
+// src/app/admin/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -6,18 +7,30 @@ import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useAuth } from "@/hooks/useAuth";
 import { getLeads, Lead } from "@/lib/firebase/db";
 
+// Import the new feature announcement modal
+import FeatureAnnouncementModal from "@/components/ui/admin/FeatureAnnouncementModal";
+
 import LeadStatusCard from "@/components/ui/admin/LeadStatusCard";
 import LeadTable from "@/components/ui/admin/LeadTable";
 import LeadChart from "@/components/ui/admin/LeadChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Lock, TrendingUp, Users, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Lock,
+  TrendingUp,
+  Users,
+  DollarSign,
+  Sparkles,
+  Bell,
+} from "lucide-react";
 
 export default function AdminDashboard() {
   const { userProfile, hasPermission } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
 
   // Fetch leads data if user has permission
   useEffect(() => {
@@ -41,6 +54,15 @@ export default function AdminDashboard() {
 
     fetchLeads();
   }, [hasPermission]);
+
+  // Show feature announcements after a short delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowAnnouncementModal(true);
+    }, 1000); // 1 second delay to let the dashboard load
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Calculate statistics
   const leadCount = leads.length;
@@ -86,14 +108,35 @@ export default function AdminDashboard() {
             </p>
           </div>
 
-          {/* Role indicator */}
-          <div className="flex items-center gap-2">
-            <Lock className="h-4 w-4 text-gray-500" />
-            <Badge variant="outline" className="capitalize">
-              {userProfile?.role?.replace("_", " ")}
-            </Badge>
+          <div className="flex items-center gap-4">
+            {/* Manual Feature Announcements Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAnnouncementModal(true)}
+              className="flex items-center space-x-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span>Novedades</span>
+            </Button>
+
+            {/* Role indicator */}
+            <div className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-gray-500" />
+              <Badge variant="outline" className="capitalize">
+                {userProfile?.role?.replace("_", " ")}
+              </Badge>
+            </div>
           </div>
         </div>
+
+        {/* Feature Announcement Modal */}
+        {showAnnouncementModal && (
+          <FeatureAnnouncementModal
+            userRole={userProfile?.role}
+            onClose={() => setShowAnnouncementModal(false)}
+          />
+        )}
 
         {/* Permission-based content */}
         <PermissionGate
