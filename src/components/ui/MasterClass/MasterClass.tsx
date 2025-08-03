@@ -1,15 +1,14 @@
 // src/components/ui/MasterClass/MasterClass.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { getContentBySection } from "@/lib/firebase/db";
 
 const MasterClassSection: React.FC = () => {
-  // State for CMS content
-  const [content, setContent] = useState<Record<string, string>>({
+  // Static content
+  const content = {
     heading: "Clases gratis cada mes",
     subheading: "Aprende técnicas que nadie enseña en internet",
     cta_text: "Ver las clases",
@@ -29,39 +28,7 @@ const MasterClassSection: React.FC = () => {
     testimonial3_author: "Neta",
     testimonial4_text:
       "Wao, voy a la mitad del video y es como una bofetada de realidad, muchas cosas que pasaba por alto. Literalmente siento que me esta creciendo el cerebro, gracias BRO",
-  });
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Fetch content from Firebase
-  useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        setIsLoading(true);
-        const contentItems = await getContentBySection("masterclass");
-
-        if (contentItems.length > 0) {
-          // Create a content map
-          const contentMap: Record<string, string> = {};
-          contentItems.forEach((item) => {
-            contentMap[item.key] = item.value;
-          });
-
-          // Update state with values from CMS, keeping defaults for missing items
-          setContent((prevContent) => ({
-            ...prevContent,
-            ...contentMap,
-          }));
-        }
-      } catch (err) {
-        console.error("Error fetching masterclass content:", err);
-        // Keep default content on error
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchContent();
-  }, []);
+  };
 
   // Animation variants
   const containerVariant = {
@@ -84,20 +51,13 @@ const MasterClassSection: React.FC = () => {
     },
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center w-full bg-black min-h-[300px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col lg:flex-row w-full bg-black text-white">
       {/* Left side - Image */}
       <div className="w-full lg:w-1/2 relative min-h-[50vh] lg:min-h-screen">
         <Image
-          src={content.image || "/image/masterClass.jpg"}
+          src={content.image}
           alt="Diseño Sonoro - Edición Persuasiva"
           fill
           className="object-cover"
@@ -131,7 +91,7 @@ const MasterClassSection: React.FC = () => {
             <p className="text-gray-300 text-base sm:text-lg mb-4 sm:mb-6 lg:mb-8">
               {content.subheading}
             </p>
-            <Link href={content.cta_url || "/clases"}>
+            <Link href={content.cta_url}>
               <span className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 sm:py-3 px-6 sm:px-8 rounded-full transition-colors text-sm sm:text-base">
                 {content.cta_text}
               </span>
@@ -151,10 +111,10 @@ const MasterClassSection: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                         <span className="font-medium text-sm sm:text-base">
-                          {content.testimonial1_author || "Ariel Media Studio"}
+                          {content.testimonial1_author}
                         </span>
                         <span className="text-xs sm:text-sm text-gray-400">
-                          {content.testimonial1_time || "2 días ago"}
+                          {content.testimonial1_time}
                         </span>
                       </div>
                       <p className="text-xs sm:text-sm text-gray-300 mt-1 line-clamp-3 sm:line-clamp-none">
@@ -172,11 +132,10 @@ const MasterClassSection: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                         <span className="font-medium text-sm sm:text-base">
-                          {content.testimonial2_author || "Alejandro Rodriguez"}
+                          {content.testimonial2_author}
                         </span>
                         <span className="text-xs sm:text-sm text-gray-400 truncate">
-                          {content.testimonial2_time ||
-                            "commented on Clase 1 - Diseño Sonoro Inmersivo • 1d ago"}
+                          {content.testimonial2_time}
                         </span>
                       </div>
                       <p className="text-xs sm:text-sm text-gray-300 mt-1 line-clamp-3 sm:line-clamp-none">
@@ -197,7 +156,7 @@ const MasterClassSection: React.FC = () => {
                           content.testimonial3_avatar ||
                           "/images/avatar-neta.jpg"
                         }
-                        alt={content.testimonial3_author || "Neta"}
+                        alt={content.testimonial3_author}
                         width={40}
                         height={40}
                         className="object-cover"
@@ -206,7 +165,7 @@ const MasterClassSection: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1 sm:gap-2">
                         <span className="font-medium text-sm sm:text-base">
-                          {content.testimonial3_author || "Neta"}
+                          {content.testimonial3_author}
                         </span>
                       </div>
                       <p className="text-xs sm:text-sm text-gray-300 mt-1 line-clamp-3 sm:line-clamp-none">

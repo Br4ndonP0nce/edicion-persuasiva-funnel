@@ -1,134 +1,24 @@
 // src/components/ui/classesCTA/ClassesCTAWithPreload.tsx
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { getContentBySection } from "@/lib/firebase/db";
 import EnhancedVideoPlayer from "@/components/Recursos/VideoPlayer";
-// Try to use video preload context if available, but don't require it
-let useVideoPreload: any = null;
-try {
-  const preloadModule = require("@/contexts/VideoPreloadContext");
-  useVideoPreload = preloadModule.useVideoPreload;
-} catch (e) {
-  // Context not available, that's fine
-  console.log("VideoPreloadContext not available in this context");
-}
 
 const ClassesCTA = () => {
-  // Try to use preload context if available
-  const preloadContext = useVideoPreload
-    ? (() => {
-        try {
-          return useVideoPreload();
-        } catch (e) {
-          return null;
-        }
-      })()
-    : null;
-
-  // Video states - fallback to original behavior if no preload context
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [progressPercentage, setProgressPercentage] = useState(0);
-  const [isLoading, setIsLoading] = useState(!preloadContext); // No loading if we have preload context
-
-  // Refs
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const videoContainerRef = useRef<HTMLDivElement>(null);
-
-  // State for CMS content
-  const [content, setContent] = useState<Record<string, string>>({
+  // Static content
+  const content = {
     heading: "ACCEDE A LA ACADEMIA DE EDICION PERSUASIVA",
     subheading: "La academia de edición MÁS COMPLETA de habla hispana",
     module1: "MÓDULO COGNITIVO",
     module2: "MÓDULO PRÁCTICO",
     module3: "CIERRES DE VENTAS",
-    video_url:
-      "https://firebasestorage.googleapis.com/v0/b/edicion-persuasiva.firebasestorage.app/o/public%2Fvideos%2FheroVideoCompressed.mp4?alt=media&token=38d812a1-fece-46c3-805b-8980b8aa0bad",
+    video_url: "/video/heroVideoCompressed.mp4",
     poster_url: "/image/hero-poster.jpg",
     cta_button: "Deseo acceder hoy",
     cta_url: "join",
-  });
-
-  // Fetch content from Firebase
-  useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        setIsLoading(true);
-        const contentItems = await getContentBySection("classes_cta");
-
-        if (contentItems.length > 0) {
-          const contentMap: Record<string, string> = {};
-          contentItems.forEach((item) => {
-            contentMap[item.key] = item.value;
-          });
-
-          setContent((prevContent) => ({
-            ...prevContent,
-            ...contentMap,
-          }));
-        }
-      } catch (err) {
-        console.error("Error fetching classes CTA content:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchContent();
-  }, []);
-
-  // If we have preload context and video is ready, use it
-  useEffect(() => {
-    if (preloadContext?.isVideoReady && videoRef.current) {
-      const preloadedVideo = preloadContext.getPreloadedVideo();
-      if (preloadedVideo && preloadedVideo.src === content.video_url) {
-        console.log("🔄 Using preloaded video in Classes CTA");
-
-        // Copy the preloaded video's source and state
-        videoRef.current.src = preloadedVideo.src;
-        videoRef.current.currentTime = preloadedVideo.currentTime;
-
-        if (preloadedVideo.duration > 0) {
-          setDuration(preloadedVideo.duration);
-          setIsLoading(false);
-        }
-      }
-    }
-  }, [preloadContext?.isVideoReady, content.video_url]);
-
-  // Fallback video loading if no preload context
-  useEffect(() => {
-    if (!preloadContext && videoRef.current && content.video_url) {
-      const video = videoRef.current;
-
-      const handleLoadedMetadata = () => {
-        setDuration(video.duration);
-        setIsLoading(false);
-      };
-
-      video.addEventListener("loadedmetadata", handleLoadedMetadata);
-      return () =>
-        video.removeEventListener("loadedmetadata", handleLoadedMetadata);
-    }
-  }, [content.video_url, preloadContext]);
-
-  // Handle fullscreen change
-
-  // Show loading if still loading content or video (when no preload)
-  if (isLoading) {
-    return (
-      <div className="bg-black min-h-[300px] text-white overflow-hidden p-6 relative flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-      </div>
-    );
-  }
+  };
 
   return (
     <div className="bg-black min-h-[600px] text-white overflow-hidden p-6 relative">
@@ -153,40 +43,22 @@ const ClassesCTA = () => {
         </div>
 
         {/* Video player */}
-        <div
-          className="mx-auto rounded-lg overflow-hidden border border-gray-800 shadow-2xl max-w-3xl"
-          ref={videoContainerRef}
-        >
+        <div className="mx-auto rounded-lg overflow-hidden border border-gray-800 shadow-2xl max-w-3xl">
           <div className="relative">
-            {/* Actual video element */}
+            {/* Video element */}
             <EnhancedVideoPlayer
-              videoUrl="https://firebasestorage.googleapis.com/v0/b/edicion-persuasiva.firebasestorage.app/o/public%2Fvideos%2FheroVideoCompressed.mp4?alt=media&token=38d812a1-fece-46c3-805b-8980b8aa0bad"
+              videoUrl={content.video_url}
               title="EDICIÓN PERSUASIVA"
               theme="purple"
-              autoplay={true} // Autoplay enabled
+              autoplay={true}
             />
-
-            {/* Overlay for title/logo when video is not playing */}
-
-            {/* Video controls */}
-
-            {/* Progress bar at the bottom - clickable */}
           </div>
         </div>
 
-        {/* Status indicator for development */}
-        {process.env.NODE_ENV === "development" && preloadContext && (
-          <div className="mt-4 text-center">
-            <div className="text-green-400 text-xs flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              Using preloaded video context - Optimized loading!
-            </div>
-          </div>
-        )}
 
         {/* Application button */}
         <div className="mt-8 text-center">
-          <Link href={content.cta_url || "join"}>
+          <Link href={content.cta_url}>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

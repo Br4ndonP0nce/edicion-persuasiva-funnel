@@ -1,7 +1,7 @@
 // src/components/ui/Testimonials/Testimonials.tsx
 "use client";
 import Link from "next/link";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import {
   MotionDiv,
@@ -10,12 +10,10 @@ import {
 } from "@/components/ui/motion";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { getContentBySection } from "@/lib/firebase/db";
 
 const TestimonialsSection = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  // State for CMS content
-  const [content, setContent] = useState<Record<string, string>>({
+  // Static content
+  const content = {
     quote:
       "La mejor forma de editar bien y vivir bien de la edición es con un mentor que ya ha logrado lo que quieres lograr",
     testimony1_title: "$1,275 dólares mensuales de UN SOLO CLIENTE",
@@ -37,38 +35,7 @@ const TestimonialsSection = () => {
     testimony3_whatsapp: "/image/paola.jpg",
     cta_button: "Deseo Aplicar",
     cta_url: "join",
-  });
-
-  // Fetch content from Firebase
-  useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        setIsLoading(true);
-        const contentItems = await getContentBySection("testimonials");
-
-        if (contentItems.length > 0) {
-          // Create a content map
-          const contentMap: Record<string, string> = {};
-          contentItems.forEach((item) => {
-            contentMap[item.key] = item.value;
-          });
-
-          // Update state with values from CMS, keeping defaults for missing items
-          setContent((prevContent) => ({
-            ...prevContent,
-            ...contentMap,
-          }));
-        }
-      } catch (err) {
-        console.error("Error fetching testimonials content:", err);
-        // Keep default content on error
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchContent();
-  }, []);
+  };
 
   const containerVariant = {
     hidden: { opacity: 0 },
@@ -95,13 +62,6 @@ const TestimonialsSection = () => {
     hover: { boxShadow: "0 0 25px 5px rgba(138, 43, 226, 0.6)" },
   };
 
-  if (isLoading) {
-    return (
-      <section className="py-16 bg-black relative flex justify-center items-center min-h-[300px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-      </section>
-    );
-  }
 
   return (
     <section className="py-16 bg-black relative">

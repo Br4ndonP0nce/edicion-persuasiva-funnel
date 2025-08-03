@@ -1,15 +1,13 @@
 // src/components/ui/success/Success.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { getContentBySection } from "@/lib/firebase/db";
 
 const SuccessSection = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  // Default discord images
-  const [discordImages, setDiscordImages] = useState([
+  // Static discord images
+  const discordImages = [
     // Left column
     "/image/testimonials/7.jpg",
     "/image/testimonials/2.jpg",
@@ -22,61 +20,8 @@ const SuccessSection = () => {
     // Right column
     "/image/testimonials/3.jpg",
     "/image/testimonials/5.jpg",
-  ]);
+  ];
 
-  // State for CMS content
-  const [content, setContent] = useState<Record<string, string>>({});
-
-  // Fetch content from Firebase
-  useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        setIsLoading(true);
-        const contentItems = await getContentBySection("success");
-
-        if (contentItems.length > 0) {
-          // Create a content map
-          const contentMap: Record<string, string> = {};
-          contentItems.forEach((item) => {
-            contentMap[item.key] = item.value;
-          });
-
-          setContent(contentMap);
-
-          // Update discord images if we have them in CMS
-          const updatedImages = [...discordImages];
-          let hasChanges = false;
-
-          for (let i = 0; i < updatedImages.length; i++) {
-            const imageKey = `image${i + 1}`;
-            if (contentMap[imageKey]) {
-              updatedImages[i] = contentMap[imageKey];
-              hasChanges = true;
-            }
-          }
-
-          if (hasChanges) {
-            setDiscordImages(updatedImages);
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching success content:", err);
-        // Keep default content on error
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchContent();
-  }, []);
-
-  if (isLoading) {
-    return (
-      <section className="py-16 bg-black relative flex justify-center items-center min-h-[300px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-      </section>
-    );
-  }
 
   return (
     <section className="py-16 bg-black relative">

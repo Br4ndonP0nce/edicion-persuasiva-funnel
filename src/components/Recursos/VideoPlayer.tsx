@@ -7,7 +7,6 @@ import {
   useVideoPlayer,
   formatVideoTime,
 } from "@/hooks/EnhancedUseVideoPlayer";
-import { useVideoPreload } from "@/contexts/VideoPreloadContent";
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -256,9 +255,6 @@ const EnhancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   enableFullscreen = true,
   videoRef: externalVideoRef,
 }) => {
-  const { isVideoReady, getPreloadedVideo, timeoutReached, error } =
-    useVideoPreload();
-
   // Use external ref if provided, otherwise create internal ref
   const internalVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = externalVideoRef || internalVideoRef;
@@ -280,26 +276,14 @@ const EnhancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     },
   });
 
-  // Set up video source with preloaded or direct loading
+  // Set up video source - direct loading
   useEffect(() => {
     if (!videoRef.current || !videoUrl) return;
 
     const video = videoRef.current;
-
-    if (isVideoReady) {
-      const preloadedVideo = getPreloadedVideo();
-      if (preloadedVideo && preloadedVideo.src) {
-        console.log(`🔄 Using preloaded video for ${title}`);
-        video.src = preloadedVideo.src;
-        video.currentTime = preloadedVideo.currentTime || 0;
-      }
-    } else {
-      console.log(`⚡ Using direct video loading for ${title}`);
-      video.src = videoUrl;
-    }
-  }, [isVideoReady, getPreloadedVideo, videoUrl, title]);
-
-  const isVideoAvailable = isVideoReady || timeoutReached || error;
+    console.log(`⚡ Loading video directly for ${title}`);
+    video.src = videoUrl;
+  }, [videoUrl, title]);
 
   // Handle progress bar click
   const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -386,54 +370,40 @@ const EnhancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         )}
 
         {/* Fallback Overlay */}
-        {!videoState.isPlaying &&
-          !videoState.showOverlay &&
-          isVideoAvailable && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="absolute inset-0 flex items-center justify-center bg-black/70 z-10"
-              onClick={videoControls.togglePlay}
-            >
-              <div className="text-center">
-                <motion.button
-                  onClick={videoControls.togglePlay}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`relative w-16 sm:w-20 h-16 sm:h-20 rounded-full flex items-center justify-center transition-colors duration-300 focus:outline-none focus:ring-4 focus:ring-${theme}-400 bg-${theme}-600/80 hover:bg-${theme}-500/90`}
-                  aria-label="Play video"
+        {!videoState.isPlaying && !videoState.showOverlay && (
+          <div
+            className="absolute inset-0 flex items-center justify-center bg-black/70 z-10"
+            onClick={videoControls.togglePlay}
+          >
+            <div className="text-center">
+              <button
+                onClick={videoControls.togglePlay}
+                className={`relative w-16 sm:w-20 h-16 sm:h-20 rounded-full flex items-center justify-center transition-colors duration-300 focus:outline-none focus:ring-4 focus:ring-${theme}-400 bg-${theme}-600/80 hover:bg-${theme}-500/90`}
+                aria-label="Play video"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 sm:h-8 w-6 sm:w-8 text-white ml-1"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 sm:h-8 w-6 sm:w-8 text-white ml-1"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <div
-                    className={`absolute inset-0 rounded-full border-2 border-${theme}-400 animate-ping opacity-20`}
-                  ></div>
-                </motion.button>
-                <p className="text-white/80 text-sm sm:text-base mt-3">
-                  Toca para reproducir con audio
-                </p>
-              </div>
-            </motion.div>
-          )}
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+              <p className="text-white/80 text-sm sm:text-base mt-3">
+                Toca para reproducir con audio
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Video Controls */}
         {showControls && videoState.isPlaying && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute bottom-0 left-0 right-0 flex items-center justify-between p-3 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-300"
-          >
+          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between p-3 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-300">
             {/* Left Controls */}
             <div className="flex items-center space-x-3">
               <button
@@ -583,7 +553,7 @@ const EnhancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                 </button>
               )}
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* Progress Bar */}

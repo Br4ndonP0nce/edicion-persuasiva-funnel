@@ -1,10 +1,9 @@
 // src/components/ui/Recursos/RecursosSectionWithEnhancedPlayer.tsx
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { getContentBySection } from "@/lib/firebase/db";
 import EnhancedVideoPlayer from "./VideoPlayer";
 
 interface RecursosContent {
@@ -26,12 +25,11 @@ const RecursosSectionWithEnhancedPlayer = () => {
   // Direct video ref for controlling playback
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Content state from Firebase
-  const [content, setContent] = useState<RecursosContent>({
+  // Static content
+  const content: RecursosContent = {
     headline: "Recursos Exclusivos de Edición Persuasiva",
     subtitle: "Accede a herramientas y plantillas que transformarán tu trabajo",
-    video_url:
-      "https://firebasestorage.googleapis.com/v0/b/edicion-persuasiva.firebasestorage.app/o/public%2Fvideos%2FheroVideoCompressed.mp4?alt=media&token=38d812a1-fece-46c3-805b-8980b8aa0bad",
+    video_url: "/video/heroVideoCompressed.mp4",
     poster_url: "", // No poster needed
     cta_academy: "¿Te gustó? Únete a la academia",
     cta_academy_url: "/join",
@@ -40,37 +38,7 @@ const RecursosSectionWithEnhancedPlayer = () => {
       "https://drive.google.com/drive/folders/1JAWqF7Hfdl3kmQTvyByVhwJnbZhgSDIy?usp=drive_link",
     description:
       "Para desbloquear tus recursos gratuitos, mira el video y haz clic en los botones al final. ¡No te lo pierdas!",
-  });
-
-  const [isContentLoading, setIsContentLoading] = useState(true);
-
-  // Fetch content from Firebase
-  useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        setIsContentLoading(true);
-        const contentItems = await getContentBySection("recursos");
-
-        if (contentItems.length > 0) {
-          const contentObj: Record<string, string> = {};
-          contentItems.forEach((item) => {
-            contentObj[item.key] = item.value;
-          });
-
-          setContent((prevContent) => ({
-            ...prevContent,
-            ...contentObj,
-          }));
-        }
-      } catch (error) {
-        console.error("Error fetching recursos content:", error);
-      } finally {
-        setIsContentLoading(false);
-      }
-    };
-
-    fetchContent();
-  }, []);
+  };
 
   // Handle video completion
   const handleVideoEnd = () => {
@@ -182,13 +150,6 @@ const RecursosSectionWithEnhancedPlayer = () => {
     </motion.div>
   ) : null;
 
-  if (isContentLoading) {
-    return (
-      <div className="bg-black min-h-screen text-white overflow-hidden p-6 relative flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-black min-h-screen text-white overflow-hidden p-6 relative flex items-center justify-center">

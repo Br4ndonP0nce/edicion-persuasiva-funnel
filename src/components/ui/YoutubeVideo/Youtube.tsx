@@ -1,57 +1,17 @@
 // src/components/ui/YoutubeVideo/Youtube.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { YouTubeEmbed } from "@next/third-parties/google";
 import { motion } from "framer-motion";
-import { getContentBySection } from "@/lib/firebase/db";
 
 const YoutubeSection: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  // State for CMS content
-  const [content, setContent] = useState<Record<string, string>>({
+  // Static content
+  const content = {
     video_id: "PZNaH57y6YE",
     description: "Aprende más con mis videos de Edición Persuasiva en Youtube",
-  });
+  };
 
-  // Fetch content from Firebase
-  useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        setIsLoading(true);
-        const contentItems = await getContentBySection("youtube");
-
-        if (contentItems.length > 0) {
-          // Create a content map
-          const contentMap: Record<string, string> = {};
-          contentItems.forEach((item) => {
-            contentMap[item.key] = item.value;
-          });
-
-          // Update state with values from CMS, keeping defaults for missing items
-          setContent((prevContent) => ({
-            ...prevContent,
-            ...contentMap,
-          }));
-        }
-      } catch (err) {
-        console.error("Error fetching youtube content:", err);
-        // Keep default content on error
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchContent();
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="w-full bg-black py-16 sm:py-20 px-4 flex flex-col items-center justify-center min-h-[300px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full bg-black py-16 sm:py-20 px-4 flex flex-col items-center justify-center">

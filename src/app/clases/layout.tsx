@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Header from "@/components/ui/Header";
-import { VideoPreloadProvider } from "@/contexts/VideoPreloadContent";
+
 import { routeMetadata } from "@/lib/seo";
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,13 +21,9 @@ export default function clasesLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <VideoPreloadProvider>
-      <div
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Header />
-        {children}
-      </div>
-    </VideoPreloadProvider>
+    <div className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <Header />
+      {children}
+    </div>
   );
 }
