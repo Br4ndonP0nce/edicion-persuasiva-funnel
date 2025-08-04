@@ -14,7 +14,7 @@ const ClassesCTA = () => {
     module1: "MÓDULO COGNITIVO",
     module2: "MÓDULO PRÁCTICO",
     module3: "CIERRES DE VENTAS",
-    video_url: "/video/heroVideoCompressed.mp4",
+    video_url: "/video/heroVideo.mp4",
     poster_url: "/image/hero-poster.jpg",
     cta_button: "Deseo acceder hoy",
     cta_url: "join",
@@ -54,7 +54,6 @@ const ClassesCTA = () => {
             />
           </div>
         </div>
-
 
         {/* Application button */}
         <div className="mt-8 text-center">

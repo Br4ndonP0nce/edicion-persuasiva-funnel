@@ -29,7 +29,7 @@ const RecursosSectionWithEnhancedPlayer = () => {
   const content: RecursosContent = {
     headline: "Recursos Exclusivos de Edición Persuasiva",
     subtitle: "Accede a herramientas y plantillas que transformarán tu trabajo",
-    video_url: "/video/heroVideoCompressed.mp4",
+    video_url: "/video/heroVideo.mp4",
     poster_url: "", // No poster needed
     cta_academy: "¿Te gustó? Únete a la academia",
     cta_academy_url: "/join",
@@ -149,7 +149,6 @@ const RecursosSectionWithEnhancedPlayer = () => {
       </div>
     </motion.div>
   ) : null;
-
 
   return (
     <div className="bg-black min-h-screen text-white overflow-hidden p-6 relative flex items-center justify-center">

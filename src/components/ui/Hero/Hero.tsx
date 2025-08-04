@@ -14,7 +14,7 @@ const HeroSection = () => {
     module1: "MÓDULO COGNITIVO",
     module2: "MÓDULO PRÁCTICO",
     module3: "CIERRES DE VENTAS",
-    video_url: "/video/heroVideoCompressed.mp4",
+    video_url: "/video/heroVideo.mp4",
     poster_url: "/image/hero-poster.jpg",
     cta_button: "Deseo Aplicar",
     cta_url: "join",
@@ -55,7 +55,10 @@ const HeroSection = () => {
         animate="visible"
       >
         {/* Top subtitle banner */}
-        <motion.div variants={itemVariants} className="mb-6 flex flex-col items-center mt-4">
+        <motion.div
+          variants={itemVariants}
+          className="mb-6 flex flex-col items-center mt-4"
+        >
           <div className="bg-purple-900/90 border border-white italic backdrop-blur-sm text-white text-center px-6 rounded-md mx-auto">
             <p className="text-sm sm:text-base md:text-lg max-w-2xl font-medium text-gray-200">
               {content.subtitle}
@@ -64,7 +67,10 @@ const HeroSection = () => {
         </motion.div>
 
         {/* Main heading */}
-        <motion.div variants={itemVariants} className="text-center mb-6 flex flex-col items-center">
+        <motion.div
+          variants={itemVariants}
+          className="text-center mb-6 flex flex-col items-center"
+        >
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-tight bg-black py-2 italic">
             {content.headline.includes("$2,000") ? (
               <>
@@ -99,7 +105,7 @@ const HeroSection = () => {
             <div className="relative">
               {/* Video Element */}
               <EnhancedVideoPlayer
-                videoUrl="/video/heroVideoCompressed.mp4"
+                videoUrl="/video/heroVideo.mp4"
                 title="EDICIÓN PERSUASIVA"
                 theme="purple"
                 autoplay={true}
