@@ -51,7 +51,6 @@ const MasterClassSection: React.FC = () => {
     },
   };
 
-
   return (
     <div className="flex flex-col lg:flex-row w-full bg-black text-white">
       {/* Left side - Image */}
@@ -152,10 +151,7 @@ const MasterClassSection: React.FC = () => {
                   <div className="flex items-start gap-2 sm:gap-3">
                     <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 overflow-hidden rounded-full bg-purple-700">
                       <Image
-                        src={
-                          content.testimonial3_avatar ||
-                          "/images/avatar-neta.jpg"
-                        }
+                        src={"/images/avatar-neta.jpg"}
                         alt={content.testimonial3_author}
                         width={40}
                         height={40}
