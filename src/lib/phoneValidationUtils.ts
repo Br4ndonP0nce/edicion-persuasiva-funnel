@@ -328,6 +328,14 @@ export interface CountryValidation {
       example: "8012345678"
     },
     {
+      code: "+240",
+      country: "Equatorial Guinea",
+      minLength: 9,
+      maxLength: 9,
+      pattern: /^[2256]\d{8}$/, // Mobile starts with 2, 2, 5, or 6
+      example: "222123456"
+    },
+    {
       code: "+20",
       country: "Egypt",
       minLength: 10,
