@@ -16,6 +16,7 @@ interface VideoPlayerProps {
   onVideoEnd?: () => void;
   onPlay?: () => void; // NEW: Custom play handler
   onPause?: () => void; // NEW: Custom pause handler
+  onTimeUpdate?: (currentTime: number, duration: number) => void; // NEW: Time update callback
   autoplay?: boolean;
   loop?: boolean;
   showControls?: boolean;
@@ -245,6 +246,7 @@ const EnhancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   onVideoEnd,
   onPlay,
   onPause,
+  onTimeUpdate,
   autoplay = false,
   loop = false,
   showControls = true,
@@ -274,6 +276,7 @@ const EnhancedVideoPlayer: React.FC<VideoPlayerProps> = ({
       console.log(`⏸️ ${title} video paused`);
       onPause?.(); // Call custom pause handler if provided
     },
+    onTimeUpdate, // Pass through the time update callback
   });
 
   // Set up video source - direct loading

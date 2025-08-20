@@ -1,11 +1,23 @@
 // src/components/ui/Hero/Hero.tsx - Simplified Autoplay Version
 "use client";
 
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import EnhancedVideoPlayer from "@/components/Recursos/VideoPlayer";
 const HeroSection = () => {
+  // CTA button visibility state
+  const [showCTA, setShowCTA] = useState(false);
+  const CTA_TRIGGER_TIME = 10; // Show CTA after 10 seconds
+
+  // Handle video time updates
+  const handleTimeUpdate = useCallback((currentTime: number, duration: number) => {
+    // Show CTA button after specified seconds
+    if (currentTime >= CTA_TRIGGER_TIME && !showCTA) {
+      setShowCTA(true);
+    }
+  }, [showCTA]);
+
   // Static content - no loading needed
   const content = {
     subtitle: "Para editores que quieran lograr más y cobrar mucho más",
@@ -110,26 +122,54 @@ const HeroSection = () => {
                 theme="purple"
                 autoplay={true}
                 allowSeeking={false}
+                onTimeUpdate={handleTimeUpdate}
               />
             </div>
           </div>
         </motion.div>
 
-        {/* Application button */}
-        <motion.div variants={itemVariants} className="mt-8 text-center">
-          <Link href={content.cta_url || "join"}>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-base sm:text-lg py-2 px-8 rounded -md"
-              style={{
-                boxShadow: "0 0 10px rgba(138, 43, 226, 0.4)",
+        {/* Application button - Shows after video triggers */}
+        <AnimatePresence>
+          {showCTA && (
+            <motion.div 
+              variants={itemVariants} 
+              className="mt-8 text-center"
+              initial={{ opacity: 0, y: 30, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 30, scale: 0.8 }}
+              transition={{ 
+                duration: 0.6, 
+                ease: [0.22, 1, 0.36, 1] 
               }}
             >
-              {content.cta_button}
-            </motion.button>
-          </Link>
-        </motion.div>
+              <Link href={content.cta_url || "join"}>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-base sm:text-lg py-3 px-10 rounded-md relative overflow-hidden"
+                  style={{
+                    boxShadow: "0 0 20px rgba(138, 43, 226, 0.6)",
+                  }}
+                >
+                  {/* Animated background pulse */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-purple-600 to-purple-500 opacity-30"
+                    animate={{
+                      scale: [1, 1.02, 1],
+                      opacity: [0.3, 0.5, 0.3],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  />
+                  <span className="relative z-10">{content.cta_button}</span>
+                </motion.button>
+              </Link>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );
