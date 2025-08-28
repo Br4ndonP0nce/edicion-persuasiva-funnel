@@ -151,9 +151,10 @@ export default async function GoPage({ params, searchParams }: PageProps) {
       content: (awaitedSearchParams.utm_content as string) || adLink.utmContent,
     };
 
-    // Record click event asynchronously
+    // Record click event - MUST await to ensure it's saved before redirect
     const recordClick = async () => {
       try {
+        console.log('📝 Recording click event...');
         const location = await getLocationFromHeaders();
         
         const clickEventData: Omit<ClickEvent, 'id' | 'timestamp'> = {
@@ -168,15 +169,15 @@ export default async function GoPage({ params, searchParams }: PageProps) {
         };
 
         await recordClickEvent(clickEventData);
-        console.log(`Click recorded for ad link: ${adLink.slug}`);
+        console.log(`✅ Click recorded for ad link: ${adLink.slug}`);
       } catch (error) {
-        console.error('Error recording click event:', error);
-        // Don't fail the redirect if click recording fails
+        console.error('❌ Error recording click event:', error);
+        // Don't fail the redirect if click recording fails, but log it
       }
     };
 
-    // Start recording click (don't await to avoid blocking the redirect)
-    recordClick();
+    // AWAIT click recording to ensure it's saved before redirect
+    await recordClick();
 
     // Build target URL with UTM parameters
     let finalUrl: string;
