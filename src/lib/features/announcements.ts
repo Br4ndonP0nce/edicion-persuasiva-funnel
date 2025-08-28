@@ -16,7 +16,7 @@ export interface FeatureAnnouncement {
 
 // Define your announcements here
 export const FEATURE_ANNOUNCEMENTS: FeatureAnnouncement[] = [
- 
+
   {
     id: 'lead-month-sorting',
     title: 'FEATURE: 📊Filtrado de leads por mes ',
@@ -31,7 +31,23 @@ export const FEATURE_ANNOUNCEMENTS: FeatureAnnouncement[] = [
     priority: 'medium',
     ctaText: 'Entendido!',
     ctaUrl: ''
-  }
+  },
+    {
+    id: 'ad-links-launch',
+    title: 'NUEVO: Enlaces Publicitarios',
+    description: 'Ahora puedes crear enlaces cortos para tus campañas y ver estadísticas detalladas de quién hace click y de dónde vienen.',
+    features: [
+      'Crear enlaces cortos personalizados (/go/tu-enlace)',
+      'Ver clicks por país y fuente de tráfico',
+      'Seguimiento de campañas con parámetros UTM',
+      'Analytics en tiempo real de rendimiento'
+    ],
+    version: '2.1.0',
+    date: '2025-01-15',
+    priority: 'high',
+    ctaText: 'Crear mi primer enlace',
+    ctaUrl: '/admin/ad-links/create'
+  },
 ];
 
 // Storage key for tracking viewed announcements

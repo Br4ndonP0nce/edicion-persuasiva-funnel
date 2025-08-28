@@ -22,6 +22,7 @@ import {
   CreditCard,
   MessageSquare, // Added for Discord
   Bot, // Alternative icon for Discord
+  Globe, // Added for ad-links
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -53,7 +54,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     }
   };
 
-  // Dynamic navigation based on user permissions - UPDATED with Discord
+  // Dynamic navigation based on user permissions - UPDATED with ad-links
   const navigation = [
     {
       name: "Dashboard",
@@ -78,6 +79,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       href: "/admin/hall-of-fame",
       icon: MessageSquare,
       permission: "users:write" as const,
+    },
+    {
+      name: "Enlaces Publicitarios",
+      href: "/admin/ad-links",
+      icon: Globe,
+      permission: "ad_links:read" as const,
     },
     {
       name: "Estadísticas",

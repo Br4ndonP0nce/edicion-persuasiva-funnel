@@ -32,7 +32,11 @@ export type Permission =
   | 'settings:write'
   | 'users:read'
   | 'users:write'
-  | 'users:delete';
+  | 'users:delete'
+  | 'ad_links:read'
+  | 'ad_links:write'
+  | 'ad_links:delete'
+  | 'ad_links_analytics:read';
 
 // Define roles with their permissions
 export type Role = 'super_admin' | 'admin' | 'crm_user' | 'viewer';
@@ -59,7 +63,9 @@ export const SYSTEM_ROLES: Record<Role, RoleDefinition> = {
       'stats:read',
       'content:read', 'content:write',
       'settings:read', 'settings:write',
-      'users:read', 'users:write', 'users:delete'
+      'users:read', 'users:write', 'users:delete',
+      'ad_links:read', 'ad_links:write', 'ad_links:delete',
+      'ad_links_analytics:read'
     ],
     isSystemRole: true
   },
@@ -74,7 +80,9 @@ export const SYSTEM_ROLES: Record<Role, RoleDefinition> = {
       'active_members:read', 'active_members:write',
       'stats:read',
       'content:read', 'content:write',
-      'settings:read', 'settings:write'
+      'settings:read', 'settings:write',
+      'ad_links:read', 'ad_links:write', 'ad_links:delete',
+      'ad_links_analytics:read'
     ],
     isSystemRole: true
   },
@@ -86,7 +94,9 @@ export const SYSTEM_ROLES: Record<Role, RoleDefinition> = {
       'dashboard:read',
       'leads:read', 'leads:write',
       'sales:read', 'sales:write', // CRM users can create and manage sales
-      'stats:read'
+      'stats:read',
+      'ad_links:read', 'ad_links:write',
+      'ad_links_analytics:read'
     ],
     isSystemRole: true
   },
