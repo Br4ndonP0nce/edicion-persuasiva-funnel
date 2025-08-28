@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Save, Eye, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 export default function CreateAdLinkPage() {
   const router = useRouter();
@@ -82,12 +83,12 @@ export default function CreateAdLinkPage() {
     e.preventDefault();
     
     if (!formData.title || !formData.slug || !formData.targetUrl || !formData.campaignName) {
-      alert("Por favor completa todos los campos requeridos");
+      toast.error("Por favor completa todos los campos requeridos");
       return;
     }
 
     if (slugError) {
-      alert("Por favor corrige el error del slug antes de continuar");
+      toast.error("Por favor corrige el error del slug antes de continuar");
       return;
     }
 
@@ -95,20 +96,26 @@ export default function CreateAdLinkPage() {
 
     try {
       // Convert form data to the format expected by createAdLink
-      const adLinkData = {
+      const adLinkData: any = {
         ...formData,
         createdBy: userProfile?.uid,
-        // Convert Date to Firebase Timestamp if expirationDate exists
-        expirationDate: formData.expirationDate ? 
-          Timestamp.fromDate(formData.expirationDate) : 
-          undefined
       };
+      
+      // Only add expirationDate if it exists (Firebase doesn't accept undefined)
+      if (formData.expirationDate) {
+        adLinkData.expirationDate = Timestamp.fromDate(formData.expirationDate);
+      }
 
       const linkId = await createAdLink(adLinkData);
-      router.push(`/admin/ad-links/${linkId}`);
+      toast.success("¡Enlace publicitario creado exitosamente!");
+      
+      // Add a small delay to let the toast show before redirecting
+      setTimeout(() => {
+        router.push(`/admin/ad-links/${linkId}`);
+      }, 1500);
     } catch (error) {
       console.error("Error creating ad link:", error);
-      alert("Error al crear el enlace publicitario");
+      toast.error("Error al crear el enlace publicitario");
     } finally {
       setIsLoading(false);
     }

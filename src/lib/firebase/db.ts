@@ -11,7 +11,8 @@ import {
     Timestamp,
     doc,
     serverTimestamp,
-    increment
+    increment,
+    deleteDoc
   } from 'firebase/firestore';
   import { db } from './config';
   import { AdLink, ClickEvent, AdLinkAnalytics, AdLinkStats } from '@/types/ad-links';
@@ -363,15 +364,28 @@ export const updateAdLink = async (linkId: string, data: Partial<AdLink>): Promi
 };
 
 /**
- * Delete ad link
+ * Soft delete ad link (deactivate)
  */
-export const deleteAdLink = async (linkId: string): Promise<void> => {
+export const deactivateAdLink = async (linkId: string): Promise<void> => {
   try {
     const linkRef = doc(db, AD_LINKS_COLLECTION, linkId);
     await updateDoc(linkRef, {
       isActive: false,
       updatedAt: serverTimestamp()
     });
+  } catch (error) {
+    console.error('Error deactivating ad link:', error);
+    throw error;
+  }
+};
+
+/**
+ * Hard delete ad link (permanent)
+ */
+export const deleteAdLink = async (linkId: string): Promise<void> => {
+  try {
+    const linkRef = doc(db, AD_LINKS_COLLECTION, linkId);
+    await deleteDoc(linkRef);
   } catch (error) {
     console.error('Error deleting ad link:', error);
     throw error;

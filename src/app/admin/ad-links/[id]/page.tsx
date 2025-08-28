@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useAuth } from "@/hooks/useAuth";
-import { getAdLink, updateAdLink, isSlugAvailable, getClickEvents } from "@/lib/firebase/db";
+import { getAdLink, updateAdLink, isSlugAvailable, getClickEvents, deleteAdLink } from "@/lib/firebase/db";
 import { AdLink, AdLinkFormData, ClickEvent } from "@/types/ad-links";
 import { generateShortUrl } from "@/lib/config";
 import { Timestamp } from "firebase/firestore";
@@ -35,8 +35,10 @@ import {
   ExternalLink,
   Calendar,
   MapPin,
-  MousePointer
+  MousePointer,
+  Trash2
 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function EditAdLinkPage() {
   const router = useRouter();
@@ -147,12 +149,12 @@ export default function EditAdLinkPage() {
     e.preventDefault();
     
     if (!formData.title || !formData.slug || !formData.targetUrl || !formData.campaignName) {
-      alert("Por favor completa todos los campos requeridos");
+      toast.error("Por favor completa todos los campos requeridos");
       return;
     }
 
     if (slugError) {
-      alert("Por favor corrige el error del slug antes de continuar");
+      toast.error("Por favor corrige el error del slug antes de continuar");
       return;
     }
 
@@ -162,19 +164,25 @@ export default function EditAdLinkPage() {
 
     try {
       // Convert form data to the format expected by updateAdLink
-      const updateData: Partial<AdLink> = {
+      const updateData: any = {
         ...formData,
-        // Convert Date to Firebase Timestamp if expirationDate exists
-        expirationDate: formData.expirationDate ? 
-          Timestamp.fromDate(formData.expirationDate) : 
-          undefined
       };
+      
+      // Only add expirationDate if it exists (Firebase doesn't accept undefined)
+      if (formData.expirationDate) {
+        updateData.expirationDate = Timestamp.fromDate(formData.expirationDate);
+      }
 
       await updateAdLink(adLink.id, updateData);
-      router.push("/admin/ad-links");
+      toast.success("¡Enlace actualizado exitosamente!");
+      
+      // Add a small delay to let the toast show before redirecting
+      setTimeout(() => {
+        router.push("/admin/ad-links");
+      }, 1500);
     } catch (error) {
       console.error("Error updating ad link:", error);
-      alert("Error al actualizar el enlace publicitario");
+      toast.error("Error al actualizar el enlace publicitario");
     } finally {
       setIsSaving(false);
     }
@@ -183,9 +191,34 @@ export default function EditAdLinkPage() {
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      alert("Copiado al portapapeles");
+      toast.success("¡Copiado al portapapeles!");
     } catch (error) {
       console.error("Error copying to clipboard:", error);
+      toast.error("Error al copiar al portapapeles");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!adLink?.id) return;
+
+    // Confirmation dialog
+    const confirmed = confirm(
+      `¿Estás seguro de que deseas eliminar "${adLink.title}"?\n\nEsta acción es permanente y no se puede deshacer. Todos los datos analíticos también se perderán.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteAdLink(adLink.id);
+      toast.success("¡Enlace eliminado exitosamente!");
+      
+      // Add a small delay to let the toast show before redirecting
+      setTimeout(() => {
+        router.push("/admin/ad-links");
+      }, 1500);
+    } catch (error) {
+      console.error("Error deleting ad link:", error);
+      toast.error("Error al eliminar el enlace publicitario");
     }
   };
 
@@ -392,25 +425,39 @@ export default function EditAdLinkPage() {
                   </CardContent>
                 </Card>
 
-                <div className="flex justify-end space-x-4">
-                  <Link href="/admin/ad-links">
-                    <Button type="button" variant="outline" disabled={isSaving}>
-                      Cancelar
+                <div className="flex justify-between">
+                  <PermissionGate permissions={["ad_links:delete"]}>
+                    <Button 
+                      type="button" 
+                      variant="destructive" 
+                      onClick={handleDelete}
+                      disabled={isSaving}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Eliminar
                     </Button>
-                  </Link>
-                  <Button type="submit" disabled={isSaving || !!slugError}>
-                    {isSaving ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                        Guardando...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-2" />
-                        Guardar Cambios
-                      </>
-                    )}
-                  </Button>
+                  </PermissionGate>
+                  
+                  <div className="flex space-x-4">
+                    <Link href="/admin/ad-links">
+                      <Button type="button" variant="outline" disabled={isSaving}>
+                        Cancelar
+                      </Button>
+                    </Link>
+                    <Button type="submit" disabled={isSaving || !!slugError}>
+                      {isSaving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Guardar Cambios
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </form>
             </PermissionGate>
