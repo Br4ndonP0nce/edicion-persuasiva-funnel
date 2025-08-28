@@ -124,11 +124,19 @@ export default async function GoPage({ params, searchParams }: PageProps) {
     // Check if link has expired
     if (adLink.expirationDate) {
       const now = new Date();
-      const expirationDate = adLink.expirationDate.toDate ? 
-        adLink.expirationDate.toDate() : 
-        new Date(adLink.expirationDate);
+      let expirationDate: Date;
+      
+      // Handle Firebase Timestamp properly
+      if (typeof adLink.expirationDate === 'object' && 'toDate' in adLink.expirationDate) {
+        // Firebase Timestamp
+        expirationDate = adLink.expirationDate.toDate();
+      } else {
+        // JavaScript Date or timestamp
+        expirationDate = new Date(adLink.expirationDate as any);
+      }
       
       if (now > expirationDate) {
+        console.log(`🚫 Link expired: ${expirationDate.toISOString()}`);
         redirect('/');
         return null;
       }
