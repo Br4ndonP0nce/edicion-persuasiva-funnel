@@ -210,8 +210,8 @@ export default async function GoPage({ params, searchParams }: PageProps) {
     const isExternal = !finalUrl.startsWith(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000');
     
     if (isExternal) {
-      // Use client-side redirect for external URLs (instant)
-      return <ClientRedirect url={finalUrl} delay={0} />;
+      // Use client-side redirect with beautiful preloader for external URLs
+      return <ClientRedirect url={finalUrl} delay={800} />;
     } else {
       // Use server-side redirect for internal URLs
       redirect(finalUrl);
