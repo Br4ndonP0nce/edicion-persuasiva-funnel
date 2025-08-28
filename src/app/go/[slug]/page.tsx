@@ -29,55 +29,39 @@ function generateSessionId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
-// Helper function to get location from IP
-async function getLocationFromIP(ip: string): Promise<{ country?: string; region?: string; city?: string }> {
+// Helper function to get location from Vercel headers
+async function getLocationFromHeaders(): Promise<{ country?: string; region?: string; city?: string }> {
   try {
-    console.log(`🌍 Getting location for IP: ${ip}`);
+    const headersList = await headers();
     
-    // Skip geolocation for localhost/private IPs
-    if (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
-      console.log(`🏠 Localhost/private IP detected: ${ip}, using fallback location`);
+    // Get geolocation from Vercel headers
+    const country = headersList.get('x-vercel-ip-country') || headersList.get('cf-ipcountry');
+    const region = headersList.get('x-vercel-ip-country-region');
+    const city = headersList.get('x-vercel-ip-city');
+    
+    console.log(`🌍 Vercel geo data - Country: ${country}, Region: ${region}, City: ${city}`);
+    
+    // Check for development/localhost
+    if (!country) {
+      console.log(`🏠 No geo headers detected (likely localhost), using fallback location`);
       return {
         country: 'Development',
-        region: 'Local',
+        region: 'Local', 
         city: 'Localhost'
       };
     }
     
-    // Using ip-api.com for geolocation (free tier) - switched to HTTPS
-    const url = `https://ipapi.co/${ip}/json/`;
-    console.log(`📡 Fetching location from: ${url}`);
-    
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'AdLinks/1.0'
-      }
-    });
-    
-    if (!response.ok) {
-      console.log(`❌ Geolocation API error: ${response.status} ${response.statusText}`);
-      return { country: 'Unknown' };
-    }
-    
-    const data = await response.json();
-    console.log(`📍 Geolocation response:`, data);
-    
-    if (data.error) {
-      console.log(`❌ Geolocation API error: ${data.reason}`);
-      return { country: 'Unknown' };
-    }
-    
     const location = {
-      country: data.country_name || 'Unknown',
-      region: data.region || data.region_code,
-      city: data.city
+      country: country || 'Unknown',
+      region: region || undefined,
+      city: city || undefined
     };
     
-    console.log(`✅ Parsed location:`, location);
+    console.log(`✅ Using Vercel geo location:`, location);
     return location;
     
   } catch (error) {
-    console.error('❌ Error getting location from IP:', error);
+    console.error('❌ Error getting location from headers:', error);
     return { country: 'Unknown' };
   }
 }
@@ -170,7 +154,7 @@ export default async function GoPage({ params, searchParams }: PageProps) {
     // Record click event asynchronously
     const recordClick = async () => {
       try {
-        const location = await getLocationFromIP(clientIP);
+        const location = await getLocationFromHeaders();
         
         const clickEventData: Omit<ClickEvent, 'id' | 'timestamp'> = {
           linkId: adLink.id!,

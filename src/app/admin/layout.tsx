@@ -5,7 +5,7 @@ import React, { ReactNode } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import DashboardLayout from "@/components/ui/admin/DashboardLayout";
-
+import { Toaster } from "sonner";
 interface AdminLayoutProps {
   children: ReactNode;
 }
@@ -15,6 +15,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     <AuthProvider>
       <ProtectedRoute requiredPermissions={["dashboard:read"]}>
         <DashboardLayout>{children}</DashboardLayout>
+        <Toaster />
       </ProtectedRoute>
     </AuthProvider>
   );
