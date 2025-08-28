@@ -439,16 +439,24 @@ export const recordClickEvent = async (clickData: Omit<ClickEvent, 'id' | 'times
 /**
  * Get click events for a specific link
  */
-export const getClickEvents = async (linkId: string, limit?: number): Promise<ClickEvent[]> => {
+export const getClickEvents = async (linkId: string, limitCount?: number): Promise<ClickEvent[]> => {
   try {
-    let q = query(
-      collection(db, CLICK_EVENTS_COLLECTION),
-      where('linkId', '==', linkId),
-      orderBy('timestamp', 'desc')
-    );
+    // Build query conditionally to avoid TypeScript constraint type issues
+    let q;
     
-    if (limit) {
-      q = query(q, limit);
+    if (limitCount) {
+      q = query(
+        collection(db, CLICK_EVENTS_COLLECTION),
+        where('linkId', '==', linkId),
+        orderBy('timestamp', 'desc'),
+        limit(limitCount)
+      );
+    } else {
+      q = query(
+        collection(db, CLICK_EVENTS_COLLECTION),
+        where('linkId', '==', linkId),
+        orderBy('timestamp', 'desc')
+      );
     }
     
     const querySnapshot = await getDocs(q);
