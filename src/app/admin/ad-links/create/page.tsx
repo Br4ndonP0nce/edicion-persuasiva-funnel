@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { createAdLink, isSlugAvailable } from "@/lib/firebase/db";
 import { AdLinkFormData } from "@/types/ad-links";
 import { generateShortUrl } from "@/lib/config";
+import { Timestamp } from "firebase/firestore";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,9 +94,14 @@ export default function CreateAdLinkPage() {
     setIsLoading(true);
 
     try {
+      // Convert form data to the format expected by createAdLink
       const adLinkData = {
         ...formData,
         createdBy: userProfile?.uid,
+        // Convert Date to Firebase Timestamp if expirationDate exists
+        expirationDate: formData.expirationDate ? 
+          Timestamp.fromDate(formData.expirationDate) : 
+          undefined
       };
 
       const linkId = await createAdLink(adLinkData);

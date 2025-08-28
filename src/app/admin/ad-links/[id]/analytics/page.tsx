@@ -76,9 +76,19 @@ export default function AdLinkAnalyticsPage() {
 
     // Clicks by day
     const clicksByDay = clicks.reduce((acc: { [key: string]: number }, click) => {
-      const date = click.timestamp.toDate ? 
-        click.timestamp.toDate().toISOString().split('T')[0] : 
-        new Date(click.timestamp).toISOString().split('T')[0];
+      let date: string;
+      
+      // Handle Firebase Timestamp properly
+      if (click.timestamp && typeof click.timestamp === 'object' && 'toDate' in click.timestamp) {
+        // Firebase Timestamp
+        date = click.timestamp.toDate().toISOString().split('T')[0];
+      } else if (click.timestamp) {
+        // JavaScript Date or timestamp
+        date = new Date(click.timestamp as any).toISOString().split('T')[0];
+      } else {
+        // Fallback
+        date = new Date().toISOString().split('T')[0];
+      }
       
       acc[date] = (acc[date] || 0) + 1;
       return acc;
@@ -131,7 +141,18 @@ export default function AdLinkAnalyticsPage() {
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return "N/A";
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    
+    let date: Date;
+    
+    // Handle Firebase Timestamp properly
+    if (typeof timestamp === 'object' && 'toDate' in timestamp) {
+      // Firebase Timestamp
+      date = timestamp.toDate();
+    } else {
+      // JavaScript Date or timestamp
+      date = new Date(timestamp);
+    }
+    
     return date.toLocaleDateString();
   };
 

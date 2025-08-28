@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getAdLink, updateAdLink, isSlugAvailable, getClickEvents } from "@/lib/firebase/db";
 import { AdLink, AdLinkFormData, ClickEvent } from "@/types/ad-links";
 import { generateShortUrl } from "@/lib/config";
+import { Timestamp } from "firebase/firestore";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -160,7 +161,16 @@ export default function EditAdLinkPage() {
     setIsSaving(true);
 
     try {
-      await updateAdLink(adLink.id, formData);
+      // Convert form data to the format expected by updateAdLink
+      const updateData: Partial<AdLink> = {
+        ...formData,
+        // Convert Date to Firebase Timestamp if expirationDate exists
+        expirationDate: formData.expirationDate ? 
+          Timestamp.fromDate(formData.expirationDate) : 
+          undefined
+      };
+
+      await updateAdLink(adLink.id, updateData);
       router.push("/admin/ad-links");
     } catch (error) {
       console.error("Error updating ad link:", error);
