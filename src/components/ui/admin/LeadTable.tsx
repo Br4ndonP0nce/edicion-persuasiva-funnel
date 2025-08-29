@@ -243,9 +243,7 @@ export default function EnhancedLeadTable({
               return (
                 <TableRow
                   key={lead.id}
-                  className={`hover:bg-gray-50 ${
-                    updatingStatus[lead.id!] ? "opacity-50" : ""
-                  }`}
+                  className={`${updatingStatus[lead.id!] ? "opacity-50" : ""}`}
                 >
                   <TableCell>
                     <div className="flex items-center space-x-3">
