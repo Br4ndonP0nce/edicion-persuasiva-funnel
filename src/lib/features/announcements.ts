@@ -16,7 +16,22 @@ export interface FeatureAnnouncement {
 
 // Define your announcements here
 export const FEATURE_ANNOUNCEMENTS: FeatureAnnouncement[] = [
-
+  {
+    id: 'dark-mode-launch',
+    title: '🌙 MODO OSCURO! Ahora puedes trabajar agusto de noche jajaja',
+    description: 'Por fin llegó el modo oscuro al CRM de edicion persuasiva! ',
+    features: [
+      'Toggle de modo oscuro en la barra superior',
+      'Colores optimizados para trabajar de noche',
+      'Se guarda tu preferencia automáticamente',
+      'Todas las páginas del crm soportan modo oscuro'
+    ],
+    version: '2.1.1',
+    date: '2025-01-16',
+    priority: 'medium',
+    ctaText: '¡Gracias!',
+    ctaUrl: ''
+  },
   {
     id: 'lead-month-sorting',
     title: 'FEATURE: 📊Filtrado de leads por mes ',

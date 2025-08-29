@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/firebase/auth";
 import { useAuth } from "@/hooks/useAuth";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import { DarkModeToggle } from "@/components/ui/DarkModeToggle";
 import {
   Home,
   Users,
@@ -131,23 +132,23 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-100 z-50">
+    <div className="h-screen flex overflow-hidden bg-gray-100 dark:bg-[#0D1117] z-50">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 md:hidden"
+          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75 md:hidden"
           onClick={() => setSidebarOpen(false)}
         ></div>
       )}
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 flex flex-col w-64 bg-purple-900 text-white transform transition-transform ease-in-out duration-300 z-50
+        className={`fixed inset-y-0 left-0 flex flex-col w-64 bg-purple-900 dark:bg-[#010409] text-white transform transition-transform ease-in-out duration-300 z-50
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           md:relative md:translate-x-0`}
       >
         {/* Sidebar header */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-purple-800">
+        <div className="flex items-center justify-between h-16 px-4 border-b border-purple-800 dark:border-gray-700">
           <Link href="/">
             <div className="flex items-center">
               <Image
@@ -168,10 +169,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         </div>
 
         {/* User info */}
-        <div className="px-4 py-3 border-b border-purple-800">
+        <div className="px-4 py-3 border-b border-purple-800 dark:border-gray-700">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 rounded-full bg-purple-700 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-purple-700 dark:bg-gray-600 flex items-center justify-center">
                 <span className="text-sm font-medium text-white">
                   {userProfile?.displayName?.charAt(0)?.toUpperCase() ||
                     userProfile?.email?.charAt(0)?.toUpperCase() ||
@@ -184,8 +185,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 {userProfile?.displayName || userProfile?.email}
               </p>
               <div className="flex items-center gap-2">
-                <Shield className="w-3 h-3 text-purple-300" />
-                <p className="text-xs text-purple-300 capitalize">
+                <Shield className="w-3 h-3 text-purple-300 dark:text-gray-400" />
+                <p className="text-xs text-purple-300 dark:text-gray-400 capitalize">
                   {userProfile?.role?.replace("_", " ")}
                 </p>
               </div>
@@ -202,16 +203,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 href={item.href}
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                   isActive(item.href)
-                    ? "bg-purple-800 text-white"
-                    : "text-purple-200 hover:bg-purple-700 hover:text-white"
+                    ? "bg-purple-800 dark:bg-gray-700 text-white"
+                    : "text-purple-200 dark:text-gray-300 hover:bg-purple-700 dark:hover:bg-gray-600 hover:text-white"
                 }`}
                 onClick={() => isMobile && setSidebarOpen(false)}
               >
                 <item.icon
                   className={`mr-3 h-5 w-5 ${
                     isActive(item.href)
-                      ? "text-purple-200"
-                      : "text-purple-300 group-hover:text-purple-200"
+                      ? "text-purple-200 dark:text-gray-400"
+                      : "text-purple-300 dark:text-gray-400 group-hover:text-purple-200 dark:group-hover:text-gray-300"
                   }`}
                 />
                 {item.name}
@@ -221,10 +222,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         </nav>
 
         {/* Sidebar footer */}
-        <div className="flex-shrink-0 flex border-t border-purple-800 p-4">
+        <div className="flex-shrink-0 flex border-t border-purple-800 dark:border-gray-700 p-4">
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center justify-center px-4 py-2 text-sm text-purple-200 rounded-md hover:bg-purple-700 hover:text-white"
+            className="w-full flex items-center justify-center px-4 py-2 text-sm text-purple-200 dark:text-gray-300 rounded-md hover:bg-purple-700 dark:hover:bg-gray-600 hover:text-white"
           >
             <LogOut className="mr-2 h-5 w-5" />
             <span>Cerrar sesión</span>
@@ -235,10 +236,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       {/* Main content */}
       <div className="flex flex-col w-0 flex-1 overflow-hidden">
         {/* Top header */}
-        <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow">
+        <div className="relative z-10 flex-shrink-0 flex h-16 bg-white dark:bg-[#010409] shadow dark:shadow-gray-800">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 md:hidden"
+            className="px-4 text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 md:hidden"
             aria-label="Open sidebar"
           >
             <Menu className="h-6 w-6" />
@@ -248,9 +249,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             <div className="flex-1 flex">
               {/* Optional search bar could go here */}
             </div>
-            <div className="ml-4 flex items-center md:ml-6">
+            <div className="ml-4 flex items-center md:ml-6 gap-3">
+              {/* Dark Mode Toggle */}
+              <DarkModeToggle />
+              
               {/* Notifications */}
-              <button className="p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+              <button className="p-1 rounded-full text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
                 <span className="sr-only">View notifications</span>
                 <Bell className="h-6 w-6" />
               </button>

@@ -102,8 +102,8 @@ export default function AdminDashboard() {
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Dashboard</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground">
               Welcome back, {userProfile?.displayName || userProfile?.email}
             </p>
           </div>
@@ -122,7 +122,7 @@ export default function AdminDashboard() {
 
             {/* Role indicator */}
             <div className="flex items-center gap-2">
-              <Lock className="h-4 w-4 text-gray-500" />
+              <Lock className="h-4 w-4 text-muted-foreground" />
               <Badge variant="outline" className="capitalize">
                 {userProfile?.role?.replace("_", " ")}
               </Badge>
@@ -145,8 +145,8 @@ export default function AdminDashboard() {
             <Card className="mb-8">
               <CardContent className="flex items-center justify-center h-32">
                 <div className="text-center">
-                  <Lock className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-600">
+                  <Lock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground">
                     You need leads access to view statistics
                   </p>
                 </div>
@@ -159,7 +159,7 @@ export default function AdminDashboard() {
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
             </div>
           ) : error ? (
-            <div className="bg-red-100 text-red-700 p-4 rounded-md mb-6">
+            <div className="bg-destructive/10 text-destructive p-4 rounded-md mb-6">
               {error}
             </div>
           ) : (
@@ -195,29 +195,35 @@ export default function AdminDashboard() {
 
               {/* Charts - Only show if user has stats access */}
               <PermissionGate permissions={["stats:read"]}>
-                <div className="bg-white rounded-lg shadow p-6 mb-8">
-                  <h2 className="text-lg font-medium mb-4">Estado de Leads</h2>
-                  <div className="h-64">
-                    <LeadChart leads={leads} />
-                  </div>
-                </div>
+                <Card className="mb-8">
+                  <CardHeader>
+                    <CardTitle>Estado de Leads</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <LeadChart leads={leads} />
+                    </div>
+                  </CardContent>
+                </Card>
               </PermissionGate>
 
               {/* Recent Leads Table */}
-              <div className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="px-6 py-4 border-b">
-                  <h2 className="text-lg font-medium">Leads Recientes</h2>
-                </div>
-                <LeadTable
-                  leads={leads.slice(0, 5)}
-                  onStatusChange={() => {
-                    // Refresh leads after status change
-                    if (hasPermission("leads:read")) {
-                      getLeads().then(setLeads);
-                    }
-                  }}
-                />
-              </div>
+              <Card className="overflow-hidden">
+                <CardHeader className="border-b border-border">
+                  <CardTitle>Leads Recientes</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <LeadTable
+                    leads={leads.slice(0, 5)}
+                    onStatusChange={() => {
+                      // Refresh leads after status change
+                      if (hasPermission("leads:read")) {
+                        getLeads().then(setLeads);
+                      }
+                    }}
+                  />
+                </CardContent>
+              </Card>
             </>
           )}
         </PermissionGate>
@@ -233,7 +239,7 @@ export default function AdminDashboard() {
                 <Users className="h-8 w-8 text-blue-500 mr-3" />
                 <div>
                   <h3 className="font-medium">Manage Leads</h3>
-                  <p className="text-sm text-gray-600">View and edit leads</p>
+                  <p className="text-sm text-muted-foreground">View and edit leads</p>
                 </div>
               </CardContent>
             </Card>
@@ -248,7 +254,7 @@ export default function AdminDashboard() {
                 <TrendingUp className="h-8 w-8 text-green-500 mr-3" />
                 <div>
                   <h3 className="font-medium">View Analytics</h3>
-                  <p className="text-sm text-gray-600">Detailed statistics</p>
+                  <p className="text-sm text-muted-foreground">Detailed statistics</p>
                 </div>
               </CardContent>
             </Card>
@@ -263,7 +269,7 @@ export default function AdminDashboard() {
                 <DollarSign className="h-8 w-8 text-purple-500 mr-3" />
                 <div>
                   <h3 className="font-medium">Content Management</h3>
-                  <p className="text-sm text-gray-600">Edit site content</p>
+                  <p className="text-sm text-muted-foreground">Edit site content</p>
                 </div>
               </CardContent>
             </Card>

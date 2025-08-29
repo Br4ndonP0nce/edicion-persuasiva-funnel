@@ -47,29 +47,29 @@ const LeadStatusCard: React.FC<LeadStatusCardProps> = ({
   const getColorClass = (type: "bg" | "text" | "border") => {
     const colorMap = {
       blue: {
-        bg: "bg-blue-100",
-        text: "text-blue-600",
-        border: "border-blue-200",
+        bg: "bg-blue-100 dark:bg-blue-900/30",
+        text: "text-blue-600 dark:text-blue-400",
+        border: "border-blue-200 dark:border-blue-700/50",
       },
       green: {
-        bg: "bg-green-100",
-        text: "text-green-600",
-        border: "border-green-200",
+        bg: "bg-green-100 dark:bg-green-900/30",
+        text: "text-green-600 dark:text-green-400",
+        border: "border-green-200 dark:border-green-700/50",
       },
       red: {
-        bg: "bg-red-100",
-        text: "text-red-600",
-        border: "border-red-200",
+        bg: "bg-red-100 dark:bg-red-900/30",
+        text: "text-red-600 dark:text-red-400",
+        border: "border-red-200 dark:border-red-700/50",
       },
       amber: {
-        bg: "bg-amber-100",
-        text: "text-amber-600",
-        border: "border-amber-200",
+        bg: "bg-amber-100 dark:bg-amber-900/30",
+        text: "text-amber-600 dark:text-amber-400",
+        border: "border-amber-200 dark:border-amber-700/50",
       },
       purple: {
-        bg: "bg-purple-100",
-        text: "text-purple-600",
-        border: "border-purple-200",
+        bg: "bg-purple-100 dark:bg-purple-900/30",
+        text: "text-purple-600 dark:text-purple-400",
+        border: "border-purple-200 dark:border-purple-700/50",
       },
     };
 
@@ -78,7 +78,7 @@ const LeadStatusCard: React.FC<LeadStatusCardProps> = ({
 
   return (
     <div
-      className={`bg-white overflow-hidden shadow rounded-lg border ${getColorClass(
+      className={`bg-card text-card-foreground overflow-hidden shadow rounded-lg border ${getColorClass(
         "border"
       )}`}
     >
@@ -90,27 +90,27 @@ const LeadStatusCard: React.FC<LeadStatusCardProps> = ({
             {getIcon()}
           </div>
           <div className="ml-5 w-0 flex-1">
-            <dt className="text-sm font-medium text-gray-500 truncate">
+            <dt className="text-sm font-medium text-muted-foreground truncate">
               {title}
             </dt>
             <dd className="flex items-baseline">
-              <div className="text-2xl font-semibold text-gray-900">
+              <div className="text-2xl font-semibold text-foreground">
                 {count}
               </div>
               {subtitle && (
-                <div className="ml-2 text-sm text-gray-500">{subtitle}</div>
+                <div className="ml-2 text-sm text-muted-foreground">{subtitle}</div>
               )}
             </dd>
           </div>
         </div>
       </div>
-      <div className={`bg-gray-50 px-5 py-3 ${getColorClass("border")}`}>
+      <div className={`bg-muted/50 px-5 py-3 border-t border-border`}>
         <div className="text-sm">
           <a
             href="#"
             className={`font-medium ${getColorClass(
               "text"
-            )} hover:text-opacity-75`}
+            )} hover:opacity-75`}
           >
             Ver todos
           </a>

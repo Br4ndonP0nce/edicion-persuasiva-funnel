@@ -62,7 +62,7 @@ export default function AdLinksPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold">Enlaces Publicitarios</h1>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Gestiona y analiza tus enlaces de campañas publicitarias
             </p>
           </div>
@@ -70,7 +70,10 @@ export default function AdLinksPage() {
           <div className="flex items-center gap-4">
             <PermissionGate permissions={["ad_links_analytics:read"]}>
               <Link href="/admin/ad-links/analytics">
-                <Button variant="outline" className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  className="flex items-center space-x-2"
+                >
                   <BarChart3 className="h-4 w-4" />
                   <span>Analytics</span>
                 </Button>
@@ -104,10 +107,12 @@ export default function AdLinksPage() {
                 <CardContent className="flex items-center p-6">
                   <LinkIcon className="h-8 w-8 text-blue-500 mr-4" />
                   <div>
-                    <p className="text-sm font-medium text-gray-600">
+                    <p className="text-sm font-medium text-muted-foreground">
                       Total Enlaces
                     </p>
-                    <p className="text-2xl font-bold">{stats?.totalLinks || 0}</p>
+                    <p className="text-2xl font-bold">
+                      {stats?.totalLinks || 0}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -116,10 +121,12 @@ export default function AdLinksPage() {
                 <CardContent className="flex items-center p-6">
                   <Eye className="h-8 w-8 text-green-500 mr-4" />
                   <div>
-                    <p className="text-sm font-medium text-gray-600">
+                    <p className="text-sm font-medium text-muted-foreground">
                       Enlaces Activos
                     </p>
-                    <p className="text-2xl font-bold">{stats?.activeLinks || 0}</p>
+                    <p className="text-2xl font-bold">
+                      {stats?.activeLinks || 0}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -128,10 +135,12 @@ export default function AdLinksPage() {
                 <CardContent className="flex items-center p-6">
                   <MousePointer className="h-8 w-8 text-purple-500 mr-4" />
                   <div>
-                    <p className="text-sm font-medium text-gray-600">
+                    <p className="text-sm font-medium text-muted-foreground">
                       Total Clicks
                     </p>
-                    <p className="text-2xl font-bold">{stats?.totalClicks || 0}</p>
+                    <p className="text-2xl font-bold">
+                      {stats?.totalClicks || 0}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -140,10 +149,12 @@ export default function AdLinksPage() {
                 <CardContent className="flex items-center p-6">
                   <TrendingUp className="h-8 w-8 text-amber-500 mr-4" />
                   <div>
-                    <p className="text-sm font-medium text-gray-600">
+                    <p className="text-sm font-medium text-muted-foreground">
                       Clicks Únicos
                     </p>
-                    <p className="text-2xl font-bold">{stats?.uniqueClicks || 0}</p>
+                    <p className="text-2xl font-bold">
+                      {stats?.uniqueClicks || 0}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -161,25 +172,33 @@ export default function AdLinksPage() {
                       {stats.topPerforming.map((link) => (
                         <div
                           key={link.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                          className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                         >
                           <div className="flex-1">
-                            <h4 className="font-medium text-sm">{link.title}</h4>
-                            <p className="text-xs text-gray-500">/{link.slug}</p>
+                            <h4 className="font-medium text-sm">
+                              {link.title}
+                            </h4>
+                            <p className="text-xs text-muted-foreground">
+                              /{link.slug}
+                            </p>
                             <div className="flex items-center mt-1 space-x-2">
                               <Badge
-                                variant={link.isActive ? "default" : "secondary"}
+                                variant={
+                                  link.isActive ? "default" : "secondary"
+                                }
                               >
                                 {link.isActive ? "Activo" : "Inactivo"}
                               </Badge>
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-muted-foreground">
                                 {link.campaignName}
                               </span>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-lg">{link.totalClicks}</p>
-                            <p className="text-xs text-gray-500">
+                            <p className="font-bold text-lg">
+                              {link.totalClicks}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
                               {link.uniqueClicks} únicos
                             </p>
                           </div>
@@ -196,8 +215,8 @@ export default function AdLinksPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <LinkIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <div className="text-center py-8 text-muted-foreground">
+                      <LinkIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                       <p>No hay enlaces creados aún</p>
                       <PermissionGate permissions={["ad_links:write"]}>
                         <Link href="/admin/ad-links/create">
@@ -222,7 +241,7 @@ export default function AdLinksPage() {
                       {stats.recentClicks.map((click) => (
                         <div
                           key={click.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                          className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                         >
                           <div className="flex-1">
                             <div className="flex items-center space-x-2">
@@ -236,7 +255,7 @@ export default function AdLinksPage() {
                                 </Badge>
                               )}
                             </div>
-                            <div className="mt-1 text-xs text-gray-500">
+                            <div className="mt-1 text-xs text-muted-foreground">
                               {click.location?.country && (
                                 <span>{click.location.country}</span>
                               )}
@@ -246,7 +265,7 @@ export default function AdLinksPage() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                               <Calendar className="h-3 w-3 inline mr-1" />
                               {formatDate(click.timestamp)}
                             </p>
@@ -255,8 +274,8 @@ export default function AdLinksPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <MousePointer className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MousePointer className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                       <p>No hay actividad de clicks reciente</p>
                     </div>
                   )}

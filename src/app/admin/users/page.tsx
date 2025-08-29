@@ -8,6 +8,7 @@ import {
   getAllUsers,
   updateUserRole,
   deactivateUser,
+  deleteUser,
   UserProfile,
   Role,
   SYSTEM_ROLES,
@@ -177,18 +178,30 @@ export default function UsersPage() {
     }
   };
 
+  const handleDeleteUser = async (userId: string, userEmail: string) => {
+    if (confirm(`Are you sure you want to PERMANENTLY DELETE the user "${userEmail}"? This action cannot be undone.`)) {
+      try {
+        await deleteUser(userId);
+        await fetchUsers(); // Refresh the list
+      } catch (err) {
+        console.error("Error deleting user:", err);
+        setError("Failed to delete user");
+      }
+    }
+  };
+
   const getRoleBadgeColor = (role: Role) => {
     switch (role) {
       case "super_admin":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400";
       case "admin":
-        return "bg-purple-100 text-purple-800";
+        return "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400";
       case "crm_user":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400";
       case "viewer":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300";
     }
   };
 
@@ -204,7 +217,7 @@ export default function UsersPage() {
     <ProtectedRoute requiredPermissions={["users:read"]}>
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">User Management</h1>
+          <h1 className="text-2xl font-bold text-foreground">User Management</h1>
 
           {hasPermission("users:write") && (
             <Button onClick={() => setShowCreateForm(true)}>
@@ -215,7 +228,7 @@ export default function UsersPage() {
         </div>
 
         {error && (
-          <div className="bg-red-100 text-red-700 p-4 rounded-md mb-6 flex items-center">
+          <div className="bg-destructive/10 text-destructive p-4 rounded-md mb-6 flex items-center">
             <AlertCircle className="mr-2 h-4 w-4" />
             {error}
           </div>
@@ -231,13 +244,10 @@ export default function UsersPage() {
               <form onSubmit={handleCreateUser} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label
-                      htmlFor="email"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
+                    <Label htmlFor="email">
                       Email
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       id="email"
                       type="email"
                       value={newUserData.email}
@@ -247,18 +257,14 @@ export default function UsersPage() {
                           email: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                       required
                     />
                   </div>
                   <div>
-                    <label
-                      htmlFor="displayName"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
+                    <Label htmlFor="displayName">
                       Nombre
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       id="displayName"
                       type="text"
                       value={newUserData.displayName}
@@ -268,18 +274,14 @@ export default function UsersPage() {
                           displayName: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                       required
                     />
                   </div>
                   <div>
-                    <label
-                      htmlFor="password"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
+                    <Label htmlFor="password">
                       Contraseña para el usuario
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       id="password"
                       type="password"
                       value={newUserData.password}
@@ -289,18 +291,14 @@ export default function UsersPage() {
                           password: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                       required
                       minLength={6}
                     />
                   </div>
                   <div>
-                    <label
-                      htmlFor="role"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
+                    <Label htmlFor="role">
                       Rol en sistema
-                    </label>
+                    </Label>
                     <select
                       id="role"
                       value={newUserData.role}
@@ -310,7 +308,7 @@ export default function UsersPage() {
                           role: e.target.value as Role,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
                     >
                       {Object.entries(SYSTEM_ROLES).map(([key, role]) => (
                         <option key={key} value={key}>
@@ -321,68 +319,65 @@ export default function UsersPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button
+                  <Button
                     type="submit"
                     disabled={creating}
-                    className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
                   >
                     {creating ? "Creating..." : "Create User"}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="outline"
                     onClick={() => setShowCreateForm(false)}
-                    className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </form>
             </CardContent>
           </Card>
         )}
         {showReAuthModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-card p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4 text-foreground">
                 ✅ User Created Successfully!
               </h3>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 To maintain security, please re-enter your admin password to
                 continue managing users.
               </p>
               <form onSubmit={handleReAuthentication}>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Label className="text-sm font-medium text-foreground">
                     Your Admin Password
-                  </label>
-                  <input
+                  </Label>
+                  <Input
                     type="password"
                     value={adminPassword}
                     onChange={(e) => setAdminPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="Enter your password"
                     required
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button
+                  <Button
                     type="submit"
                     disabled={creating}
-                    className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
                   >
                     {creating ? "Signing In..." : "Continue as Admin"}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="outline"
                     onClick={() => {
                       setShowReAuthModal(false);
                       setAdminPassword("");
                       window.location.reload(); // Force refresh to clear any auth issues
                     }}
-                    className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
                   >
                     Refresh Page
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>
@@ -396,44 +391,44 @@ export default function UsersPage() {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-border">
+                <thead className="bg-muted/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       User
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Role
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Created
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-card divide-y divide-border">
                   {users.map((user) => (
-                    <tr key={user.uid} className="hover:bg-gray-50">
+                    <tr key={user.uid} className="hover:bg-muted/30">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                              <span className="text-sm font-medium text-purple-900">
+                            <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                              <span className="text-sm font-medium text-purple-900 dark:text-purple-400">
                                 {user.displayName?.charAt(0)?.toUpperCase() ||
                                   user.email?.charAt(0)?.toUpperCase()}
                               </span>
                             </div>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-foreground">
                               {user.displayName || "No name"}
                             </div>
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-muted-foreground">
                               {user.email}
                             </div>
                           </div>
@@ -482,7 +477,7 @@ export default function UsersPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                         {user.createdAt
                           ? new Date(
                               user.createdAt.seconds * 1000
@@ -501,11 +496,21 @@ export default function UsersPage() {
                                     onClick={() =>
                                       handleDeactivateUser(user.uid)
                                     }
-                                    className="text-red-600 hover:text-red-700"
+                                    className="text-amber-600 hover:text-amber-700 border-amber-300 hover:border-amber-400"
                                   >
                                     <UserX className="h-4 w-4" />
                                   </Button>
                                 )}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleDeleteUser(user.uid, user.email)
+                                  }
+                                  className="text-red-600 hover:text-red-700 border-red-300 hover:border-red-400"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </>
                             )}
                         </div>
